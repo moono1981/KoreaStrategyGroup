@@ -3,579 +3,248 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Korea Strategy Group — Employee Directory</title>
+  <title>Korea Strategy Group — Dashboard</title>
+  <style>
+    :root{--bg:#0b1220;--card:#071428;--muted:#9fb3d6;--text:#e6eef8;--accent:#15405a;--gold:#ffd166}
+    body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{padding:14px 18px;background:linear-gradient(90deg,#071031,#071a2a);display:flex;align-items:center;justify-content:space-between}
+    .tabs{display:flex;gap:8px}
+    .tab{padding:8px 12px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:var(--muted);cursor:pointer}
+    .tab.active{background:var(--accent);color:#fff}
+    main{padding:18px}
+    .panel{display:none}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .card{background:#061526;padding:12px;border-radius:8px}
+    .org{background:#061526;padding:12px;border-radius:8px}
+    .projBar{height:10px;background:#041426;border-radius:6px;overflow:hidden}
+    .projFill{height:100%;background:#4ea1ff}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+    form input, form select, form textarea{width:100%;padding:8px;margin-top:6px;border-radius:6px;background:#061226;border:1px solid #123245;color:var(--text)}
+    .btn{padding:8px 10px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer}
+  </style>
 </head>
-<body style="margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:#0b1220;color:#e6eef8;-webkit-font-smoothing:antialiased">
-  <div style="display:flex;flex-direction:column;min-height:100vh">
-    <header style="padding:16px 20px;background:linear-gradient(90deg,#071031,#071a2a);display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.5)">
-      <div style="display:flex;align-items:center;gap:12px">
-        <h1 style="margin:0;font-size:18px;letter-spacing:0.4px">Korea Strategy Group</h1>
-        <div style="font-size:12px;color:#9fb3d6;opacity:.9">직원 디렉터리</div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <input id="search" placeholder="이름으로 검색" aria-label="search" style="padding:8px 10px;border-radius:8px;background:#061226;border:1px solid #123245;color:#e6eef8;outline:none;width:220px" />
-        <div id="filters" style="display:flex;gap:8px;align-items:center"></div>
-        <div style="display:flex;gap:8px;margin-left:8px;">
-          <button id="tabCards" style="padding:8px 10px;border-radius:8px;background:#15405a;border:1px solid #123245;color:#e6eef8;cursor:pointer">직원 카드</button>
-          <button id="tabOrg" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">조직도</button>
-          <button id="tabProjects" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">프로젝트</button>
-          <button id="tabTalent" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">인재개발</button>
-        </div>
-        <button id="addEmployee" style="margin-left:12px;padding:8px 10px;border-radius:8px;background:#1b6f3a;border:1px solid #174f2b;color:#fff;cursor:pointer">직원 추가</button>
-      </div>
-    </header>
+<body>
+  <header>
+    <div>
+      <h1 style="margin:0;font-size:18px">Korea Strategy Group</h1>
+      <div style="font-size:12px;color:var(--muted)">Dashboard (file:// friendly)</div>
+    </div>
+    <div class="tabs">
+      <button id="tabEmployees" class="tab active">직원카드</button>
+      <button id="tabOrg" class="tab">조직도</button>
+      <button id="tabProjects" class="tab">프로젝트</button>
+      <button id="tabTalent" class="tab">인재개발</button>
+      <button id="tabAdd" class="tab">직원추가</button>
+    </div>
+  </header>
 
-    <main style="padding:18px;flex:1;display:flex;gap:18px;align-items:flex-start">
-      <section style="flex:1;display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="color:#9fb3d6;font-size:13px">총 직원: <span id="count">--</span></div>
-          <div style="color:#8fa7c8;font-size:12px">Dark theme · Vanilla JS · No frameworks</div>
-        </div>
+  <main>
+    <section id="employeesPanel" class="panel" style="display:block">
+      <div id="employeesContent" class="grid"></div>
+    </section>
 
-        <div id="cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
-        <div id="orgView" style="display:none;padding:6px;border-radius:8px;background:#071428;color:#e6eef8"></div>
-        <div id="projectsView" style="display:none;padding:6px;border-radius:8px;background:#071428;color:#e6eef8"></div>
-        <div id="talentView" style="display:none;padding:12px;border-radius:8px;background:#071428;color:#e6eef8">
-          <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
-            <div style="flex:1">
-              <select id="talentSelect" style="width:100%;padding:8px;border-radius:8px;background:#061226;border:1px solid #123245;color:#e6eef8"></select>
-            </div>
-            <div style="min-width:140px;text-align:right;color:#9fb3d6;font-size:13px">인재개발 대시보드</div>
-          </div>
-          <div id="talentList" style="max-height:520px;overflow:auto;padding-top:8px;display:block"></div>
-          <div id="talentContent" style="display:flex;gap:12px">
-            <div style="flex:1;display:flex;flex-direction:column;gap:12px">
-              <div id="scoresCard" style="padding:12px;background:#061526;border-radius:8px"></div>
-              <div id="coursesCard" style="padding:12px;background:#061526;border-radius:8px"></div>
-              <div id="careerCard" style="padding:12px;background:#061526;border-radius:8px"></div>
-            </div>
-            <div style="width:320px;display:flex;flex-direction:column;gap:12px">
-              <div id="projectsCard" style="padding:12px;background:#061526;border-radius:8px;min-height:180px;overflow:auto"></div>
-              <div id="trendCard" style="padding:12px;background:#061526;border-radius:8px;min-height:160px">
-                <div style="font-weight:700;margin-bottom:8px">월간 성과 추세</div>
-                <canvas id="trendChart" width="300" height="120" style="width:100%;height:120px;background:transparent"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
+    <section id="orgPanel" class="panel">
+      <div id="orgContent" class="org"></div>
+    </section>
 
-        <div id="noResults" style="display:none;color:#9fb3d6;padding:18px;background:#071428;border-radius:8px">검색 결과가 없습니다.</div>
-      </section>
+    <section id="projectsPanel" class="panel">
+      <div id="projectsContent" class="grid"></div>
+    </section>
 
-      <aside style="width:280px;display:flex;flex-direction:column;gap:12px">
-        <div style="background:#071428;padding:12px;border-radius:8px">
-          <div style="font-size:13px;color:#9fb3d6;margin-bottom:8px">필터 (부문)</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button data-division="전체" class="filterBtn" style="padding:8px 10px;border-radius:8px;background:#123046;border:1px solid #123046;color:#e6eef8;cursor:pointer">전체</button>
-            <button data-division="연구부문" class="filterBtn" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">연구부문</button>
-            <button data-division="과제수행" class="filterBtn" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">과제수행</button>
-            <button data-division="정치컨설팅" class="filterBtn" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">정치컨설팅</button>
-          </div>
-        </div>
+    <section id="talentPanel" class="panel">
+      <div id="talentContent"></div>
+    </section>
 
-        <div style="background:#071428;padding:12px;border-radius:8px">
-          <div style="font-size:13px;color:#9fb3d6;margin-bottom:8px">도움말</div>
-          <div style="font-size:12px;color:#8fa7c8">이름으로 검색하거나 부문 버튼을 사용해 필터하세요.</div>
-        </div>
-      </aside>
-    </main>
-
-    <footer style="padding:12px 18px;background:#021226;color:#90b0d6;font-size:12px;text-align:right">데이터: employees.json</footer>
-  </div>
+    <section id="addPanel" class="panel">
+      <div id="addContent" class="card"></div>
+    </section>
+  </main>
 
   <script>
-  (function(){
-    const cardsEl = document.getElementById('cards');
-    const orgEl = document.getElementById('orgView');
-    const projectsEl = document.getElementById('projectsView');
-    const countEl = document.getElementById('count');
-    const noResultsEl = document.getElementById('noResults');
-    const searchEl = document.getElementById('search');
-    const filtersEl = document.getElementById('filters');
-    const filterButtons = Array.from(document.getElementsByClassName('filterBtn'));
-    const tabCards = document.getElementById('tabCards');
-    const tabOrg = document.getElementById('tabOrg');
-    const tabProjects = document.getElementById('tabProjects');
-    const addEmployeeBtn = document.getElementById('addEmployee');
-    let employees = [];
-    let activeDivision = '전체';
-    let q = '';
-    let viewMode = 'cards'; // 'cards' or 'org'
-    let editSession = { mode: null, id: null };
+  // 1) All employee data
+  const employees = [
+    {id:1,name:'정도현',age:58,title:'대표이사(CEO)',division:'경영진'},
+    {id:2,name:'강민수',age:49,title:'연구부문장(상무)',division:'연구부문'},
+    {id:3,name:'이서연',age:41,title:'수석연구위원',division:'연구부문'},
+    {id:4,name:'박준영',age:38,title:'책임연구원',division:'연구부문'},
+    {id:5,name:'최유진',age:35,title:'책임연구원',division:'연구부문'},
+    {id:6,name:'김도윤',age:33,title:'선임연구원',division:'연구부문'},
+    {id:7,name:'한소희',age:31,title:'선임연구원',division:'연구부문'},
+    {id:8,name:'오태경',age:36,title:'선임연구원',division:'연구부문'},
+    {id:9,name:'신예린',age:29,title:'연구원',division:'연구부문'},
+    {id:10,name:'장현우',age:30,title:'연구원',division:'연구부문'},
+    {id:11,name:'윤채원',age:28,title:'연구원',division:'연구부문'},
+    {id:12,name:'배성민',age:34,title:'선임연구원',division:'연구부문'},
+    {id:13,name:'임하늘',age:27,title:'연구원',division:'연구부문'},
+    {id:14,name:'권지호',age:32,title:'선임연구원',division:'연구부문'},
+    {id:15,name:'송다은',age:26,title:'연구원',division:'연구부문'},
+    {id:16,name:'조현석',age:44,title:'수석연구위원',division:'연구부문'},
+    {id:17,name:'문가영',age:37,title:'책임연구원',division:'연구부문'},
+    {id:18,name:'노준혁',age:39,title:'책임연구원',division:'연구부문'},
+    {id:19,name:'황수아',age:30,title:'연구원',division:'연구부문'},
+    {id:20,name:'윤서진',age:47,title:'과제수행부문장(상무)',division:'과제수행부문'},
+    {id:21,name:'이강훈',age:42,title:'수석컨설턴트',division:'과제수행부문'},
+    {id:22,name:'정유나',age:38,title:'책임컨설턴트',division:'과제수행부문'},
+    {id:23,name:'김태현',age:36,title:'책임컨설턴트',division:'과제수행부문'},
+    {id:24,name:'박서윤',age:33,title:'선임컨설턴트',division:'과제수행부문'},
+    {id:25,name:'최동민',age:35,title:'선임컨설턴트',division:'과제수행부문'},
+    {id:26,name:'한예슬',age:31,title:'컨설턴트',division:'과제수행부문'},
+    {id:27,name:'오승준',age:34,title:'선임컨설턴트',division:'과제수행부문'},
+    {id:28,name:'신지아',age:29,title:'컨설턴트',division:'과제수행부문'},
+    {id:29,name:'장민재',age:37,title:'책임컨설턴트',division:'과제수행부문'},
+    {id:30,name:'윤도경',age:32,title:'선임컨설턴트',division:'과제수행부문'},
+    {id:31,name:'임수빈',age:28,title:'컨설턴트',division:'과제수행부문'},
+    {id:32,name:'권상우',age:40,title:'수석컨설턴트',division:'과제수행부문'},
+    {id:33,name:'송재희',age:30,title:'컨설턴트',division:'과제수행부문'},
+    {id:34,name:'조은별',age:27,title:'컨설턴트',division:'과제수행부문'},
+    {id:35,name:'문태웅',age:39,title:'책임컨설턴트',division:'과제수행부문'},
+    {id:36,name:'황민서',age:33,title:'선임컨설턴트',division:'과제수행부문'},
+    {id:37,name:'한지욱',age:46,title:'정치컨설팅부문장(상무)',division:'정치컨설팅부문'},
+    {id:38,name:'이재원',age:43,title:'수석컨설턴트',division:'정치컨설팅부문'},
+    {id:39,name:'정하린',age:36,title:'책임컨설턴트',division:'정치컨설팅부문'},
+    {id:40,name:'김선우',age:38,title:'책임컨설턴트',division:'정치컨설팅부문'},
+    {id:41,name:'박지민',age:32,title:'선임컨설턴트',division:'정치컨설팅부문'},
+    {id:42,name:'최서아',age:34,title:'선임컨설턴트',division:'정치컨설팅부문'},
+    {id:43,name:'한도훈',age:30,title:'컨설턴트',division:'정치컨설팅부문'},
+    {id:44,name:'오나경',age:35,title:'책임컨설턴트',division:'정치컨설팅부문'},
+    {id:45,name:'신우성',age:41,title:'수석컨설턴트',division:'정치컨설팅부문'},
+    {id:46,name:'장유빈',age:29,title:'컨설턴트',division:'정치컨설팅부문'},
+    {id:47,name:'윤소율',age:31,title:'선임컨설턴트',division:'정치컨설팅부문'},
+    {id:48,name:'임건우',age:37,title:'책임컨설턴트',division:'정치컨설팅부문'},
+    {id:49,name:'권나윤',age:28,title:'컨설턴트',division:'정치컨설팅부문'},
+    {id:50,name:'조민혁',age:33,title:'선임컨설턴트',division:'정치컨설팅부문'}
+  ];
 
-    // create modals (profile and edit)
-    const modalOverlay = document.createElement('div');
-    modalOverlay.style.position='fixed'; modalOverlay.style.left=0; modalOverlay.style.top=0; modalOverlay.style.right=0; modalOverlay.style.bottom=0;
-    modalOverlay.style.background='rgba(2,6,12,0.6)'; modalOverlay.style.display='none'; modalOverlay.style.alignItems='center'; modalOverlay.style.justifyContent='center'; modalOverlay.style.zIndex=9999;
-    modalOverlay.addEventListener('click',(e)=>{ if(e.target===modalOverlay) closeModal(); });
-    const modalBox = document.createElement('div'); modalBox.style.background='#071428'; modalBox.style.borderRadius='8px'; modalBox.style.padding='16px'; modalBox.style.minWidth='320px'; modalBox.style.maxWidth='760px'; modalBox.style.maxHeight='80vh'; modalBox.style.overflow='auto'; modalOverlay.appendChild(modalBox);
-    document.body.appendChild(modalOverlay);
+  // 2) All project data
+  const projects = [
+    {id:1,name:'스마트도시 여론분석',client:'서울시청',budget:150000000,status:'진행중',assigned:[2,3,9,12],start:'2026-01-15',deadline:'2026-07-30',progress:42},
+    {id:2,name:'지역경제 활성화 전략',client:'강원도청',budget:82000000,status:'입찰중',assigned:[5,6,13],start:'2026-03-01',deadline:'2026-12-31',progress:10},
+    {id:3,name:'디지털 캠페인 성과분석',client:'모바일캠페인사',budget:60000000,status:'진행중',assigned:[41,40,47,23],start:'2026-02-10',deadline:'2026-05-20',progress:68},
+    {id:4,name:'교육정책 연구용역',client:'교육연구원',budget:98000000,status:'완료',assigned:[19,15,11],start:'2025-08-01',deadline:'2026-02-28',progress:100},
+    {id:5,name:'공공사업 PMO 지원',client:'국토사업단',budget:210000000,status:'진행중',assigned:[20,21,32,27],start:'2025-11-01',deadline:'2026-11-01',progress:55},
+    {id:6,name:'선거여론 모니터링 플랫폼',client:'정치연구소',budget:125000000,status:'진행중',assigned:[37,38,41,46],start:'2026-03-15',deadline:'2026-09-30',progress:33},
+    {id:7,name:'사회지표 데이터 정비',client:'통계센터',budget:45000000,status:'입찰중',assigned:[6,7,12,34],start:'2026-04-01',deadline:'2026-08-31',progress:5},
+    {id:8,name:'정책영향 모델링 고도화',client:'정책기획처',budget:175000000,status:'진행중',assigned:[2,14,16,45],start:'2026-01-05',deadline:'2026-10-15',progress:47},
+    {id:9,name:'공공의사소통 전략 수립',client:'시민소통센터',budget:68000000,status:'완료',assigned:[33,49,29],start:'2025-06-01',deadline:'2025-12-20',progress:100},
+    {id:10,name:'신규사업 기획 파일럿',client:'스타트업연합',budget:54000000,status:'진행중',assigned:[25,31,38],start:'2026-04-10',deadline:'2026-09-10',progress:21}
+  ];
 
-    function openModal(contentEl){ modalBox.innerHTML=''; modalBox.appendChild(contentEl); modalOverlay.style.display='flex'; }
-    function closeModal(){ modalOverlay.style.display='none'; editSession.mode=null; editSession.id=null; }
+  // 3) All talent data
+  const talent = [
+    {id:1,전문성:95,리더십:92,협업:85,성과:93,소통:88,수료율:100,예상승진:'2026-06'},
+    {id:2,전문성:88,리더십:80,협업:82,성과:85,소통:79,수료율:33,예상승진:'2026-06'},
+    {id:3,전문성:90,리더십:78,협업:80,성과:88,소통:82,수료율:100,예상승진:'2026-06'},
+    {id:4,전문성:75,리더십:70,협업:78,성과:76,소통:73,수료율:50,예상승진:'2026-09'},
+    {id:5,전문성:86,리더십:72,협업:74,성과:80,소통:75,수료율:50,예상승진:'2026-08'},
+    {id:6,전문성:72,리더십:68,협업:80,성과:75,소통:70,수료율:50,예상승진:'2026-10'},
+    {id:7,전문성:78,리더십:66,협업:82,성과:70,소통:68,수료율:50,예상승진:'2026-10'},
+    {id:8,전문성:80,리더십:75,협업:79,성과:82,소통:70,수료율:50,예상승진:'2026-08'},
+    {id:9,전문성:70,리더십:60,협업:72,성과:68,소통:66,수료율:100,예상승진:'2027-01'},
+    {id:10,전문성:74,리더십:62,협업:70,성과:72,소통:69,수료율:50,예상승진:'2026-12'},
+    {id:11,전문성:69,리더십:60,협업:68,성과:66,소통:67,수료율:100,예상승진:'2027-01'},
+    {id:12,전문성:82,리더십:74,협업:76,성과:80,소통:73,수료율:50,예상승진:'2026-08'},
+    {id:13,전문성:68,리더십:58,협업:70,성과:65,소통:66,수료율:50,예상승진:'2027-02'},
+    {id:14,전문성:88,리더십:76,협업:80,성과:85,소통:72,수료율:100,예상승진:'2026-06'},
+    {id:15,전문성:66,리더십:58,협업:64,성과:62,소통:63,수료율:100,예상승진:'2027-03'},
+    {id:16,전문성:90,리더십:82,협업:80,성과:88,소통:78,수료율:100,예상승진:'2026-06'},
+    {id:17,전문성:78,리더십:72,협업:76,성과:79,소통:71,수료율:100,예상승진:'2026-09'},
+    {id:18,전문성:80,리더십:74,협업:75,성과:78,소통:70,수료율:50,예상승진:'2026-09'},
+    {id:19,전문성:72,리더십:66,협업:70,성과:71,소통:68,수료율:100,예상승진:'2026-12'},
+    {id:20,전문성:86,리더십:88,협업:84,성과:87,소통:80,수료율:50,예상승진:'2026-06'},
+    {id:21,전문성:84,리더십:80,협업:83,성과:82,소통:78,수료율:100,예상승진:'2026-06'},
+    {id:22,전문성:78,리더십:72,협업:76,성과:77,소통:74,수료율:100,예상승진:'2026-09'},
+    {id:23,전문성:80,리더십:75,협업:78,성과:79,소통:81,수료율:100,예상승진:'2026-08'},
+    {id:24,전문성:76,리더십:70,협업:75,성과:74,소통:72,수료율:100,예상승진:'2026-10'},
+    {id:25,전문성:82,리더십:74,협업:80,성과:78,소통:73,수료율:50,예상승진:'2026-08'},
+    {id:26,전문성:70,리더심:66,협업:72,성과:69,소통:68,수료율:50,예상승진:'2026-12'},
+    {id:27,전문성:79,리더십:75,협업:80,성과:78,소통:74,수료율:100,예상승진:'2026-08'},
+    {id:28,전문성:68,리더십:64,협업:70,성과:67,소통:69,수료율:100,예상승진:'2027-01'},
+    {id:29,전문성:83,리더십:76,협업:78,성과:81,소통:72,수료율:100,예상승진:'2026-07'},
+    {id:30,전문성:75,리더십:70,협업:76,성과:74,소통:73,수료율:100,예상승진:'2026-10'},
+    {id:31,전문성:69,리더십:62,협업:70,성과:68,소통:66,수료율:100,예상승진:'2027-01'},
+    {id:32,전문성:88,리더십:82,협업:84,성과:86,소통:78,수료율:100,예상승진:'2026-06'},
+    {id:33,전문성:76,리더십:68,협업:74,성과:75,소통:71,수료율:0,예상승진:'2026-10'},
+    {id:34,전문성:67,리더십:60,협업:69,성과:65,소통:66,수료율:100,예상승진:'2027-02'},
+    {id:35,전문성:81,리더십:74,협업:76,성과:80,소통:72,수료율:100,예상승진:'2026-08'},
+    {id:36,전문성:77,리더십:72,협업:75,성과:76,소통:70,수료율:100,예상승진:'2026-09'},
+    {id:37,전문성:89,리더십:90,협업:83,성과:88,소통:80,수료율:50,예상승진:'2026-06'},
+    {id:38,전문성:84,리더십:78,협업:82,성과:83,소통:79,수료율:100,예상승진:'2026-06'},
+    {id:39,전문성:78,리더심:74,협업:76,성과:77,소통:75,수료율:100,예상승진:'2026-08'},
+    {id:40,전문성:82,리더십:76,협업:80,성과:81,소통:73,수료율:50,예상승진:'2026-07'},
+    {id:41,전문성:79,리더십:72,협업:78,성과:77,소통:80,수료율:100,예상승진:'2026-06'},
+    {id:42,전문성:80,리더십:74,협업:77,성과:78,소통:76,수료율:100,예상승진:'2026-08'},
+    {id:43,전문성:72,리더십:66,협업:74,성과:70,소통:69,수료율:100,예상승진:'2026-11'},
+    {id:44,전문성:83,리더십:78,협업:80,성과:82,소통:74,수료율:100,예상승진:'2026-07'},
+    {id:45,전문성:88,리더십:84,협업:82,성과:86,소통:76,수료율:100,예상승진:'2026-06'},
+    {id:46,전문성:70,리더심:64,협업:72,성과:68,소통:67,수료율:0,예상승진:'2026-12'},
+    {id:47,전문성:81,리더십:75,협업:80,성과:79,소통:78,수료율:100,예상승진:'2026-06'},
+    {id:48,전문성:84,리더십:78,협업:79,성과:82,소통:73,수료율:100,예상승진:'2026-07'},
+    {id:49,전문성:68,리더십:62,협업:70,성과:67,소통:69,수료율:100,예상승진:'2027-01'},
+    {id:50,전문성:82,리더십:76,협업:78,성과:80,소통:74,수료율:100,예상승진:'2026-07'}
+  ];
 
-    function normalizeDivision(d){
-      if(!d) return '기타';
-      if(d.indexOf('연구')!==-1) return '연구부문';
-      if(d.indexOf('과제')!==-1) return '과제수행';
-      if(d.indexOf('정치')!==-1) return '정치컨설팅';
-      return d;
+  // helper: compute grade
+  function gradeOf(t){ const avg = Math.round((t.전문성+t.리더십+t.협업+t.성과+t.소통)/5); if(avg>=90) return 'S'; if(avg>=80) return 'A'; if(avg>=70) return 'B'; return 'C'; }
+
+  // tab switching
+  function showPanel(id){ document.querySelectorAll('.panel').forEach(p=>p.style.display='none'); document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active')); document.getElementById(id+'Panel').style.display='block';
+    // set active tab
+    if(id==='employees') document.getElementById('tabEmployees').classList.add('active');
+    if(id==='org') document.getElementById('tabOrg').classList.add('active');
+    if(id==='projects') document.getElementById('tabProjects').classList.add('active');
+    if(id==='talent') document.getElementById('tabTalent').classList.add('active');
+    if(id==='add') document.getElementById('tabAdd').classList.add('active');
+  }
+
+  // render functions using innerHTML
+  function renderEmployees(){ const el=document.getElementById('employeesContent'); el.innerHTML = employees.map(e=>{
+    return `<div class="card"><div style="font-weight:700">${e.name}</div><div style="color:var(--muted)">${e.title}</div><div style="margin-top:8px;color:var(--muted)">${e.division} • ${e.age}세</div></div>`;
+  }).join(''); }
+
+  function renderOrg(){ const el=document.getElementById('orgContent'); // simple nested divs by division
+    const groups = {};
+    employees.forEach(e=>{ const d=e.division||'기타'; if(!groups[d]) groups[d]=[]; groups[d].push(e); });
+    let html = '';
+    for(const d in groups){ html += `<div style="margin-bottom:12px"><div style="font-weight:700;color:var(--muted)">${d}</div><div style="display:flex;gap:8px;margin-top:8px">`;
+      groups[d].forEach(m=>{ html += `<div style="background:#041426;padding:8px;border-radius:6px"><div style="font-weight:700">${m.name}</div><div style="font-size:12px;color:var(--muted)">${m.title}</div></div>`; });
+      html += `</div></div>`;
     }
+    el.innerHTML = html;
+  }
 
-    function matchName(emp, q){
-      if(!q) return true;
-      return emp.name.indexOf(q)!==-1 || (emp.title && emp.title.indexOf(q)!==-1);
-    }
+  function renderProjects(){ const el=document.getElementById('projectsContent'); el.innerHTML = projects.map(p=>{
+    const assigned = p.assigned.map(id=>{ const emp = employees.find(e=>e.id===id); return emp? emp.name : 'ID:'+id; }).slice(0,4).join(', ');
+    return `<div class="card"><div style="font-weight:700">${p.name}</div><div style="color:var(--muted);font-size:13px">${p.client} • 예산 ${p.budget.toLocaleString()}원</div><div style="margin-top:8px">진행 ${p.progress}%</div><div class="projBar" style="margin-top:6px"><div class="projFill" style="width:${p.progress}%"></div></div><div style="margin-top:8px;color:var(--muted);font-size:12px">담당: ${assigned}</div></div>`;
+  }).join(''); }
 
-    function render(){
-      const filtered = employees.filter(emp => {
-        const div = normalizeDivision(emp.division || emp.div || emp['division']);
-        const divisionMatch = activeDivision === '전체' || div === activeDivision;
-        return divisionMatch && matchName(emp, q);
-      });
+  function renderTalent(){ const el=document.getElementById('talentContent');
+    let html = '<table><thead><tr><th>이름</th><th>부서</th><th>등급</th><th>전문성</th><th>리더십</th><th>협업</th><th>교육수료율%</th><th>승진예정</th></tr></thead><tbody>';
+    talent.forEach(t=>{ const emp = employees.find(e=>e.id===t.id) || {}; const g=gradeOf(t); html += `<tr><td style="font-weight:700">${emp.name||('ID:'+t.id)}</td><td style="color:var(--muted)">${emp.division||''}</td><td><strong>${g}</strong></td><td>${t.전문성}</td><td>${t.리더십||t.리더심||0}</td><td>${t.협업}</td><td style="color:var(--muted)">${t.수료율}%</td><td style="color:var(--muted)">${t.예상승진}</td></tr>`; });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  }
 
-      cardsEl.innerHTML = '';
-      countEl.textContent = filtered.length + '/' + employees.length;
-      if(filtered.length === 0){ noResultsEl.style.display = 'block'; } else { noResultsEl.style.display = 'none'; }
+  function renderAdd(){ const el=document.getElementById('addContent'); el.innerHTML = `
+    <h2>직원 추가</h2>
+    <form onsubmit="event.preventDefault(); alert('추가 기능은 데모입니다.');">
+      <label>이름<input name="name" /></label>
+      <label>나이<input name="age" /></label>
+      <label>직책<input name="title" /></label>
+      <label>부문<input name="division" /></label>
+      <div style="margin-top:8px"><button class="btn" type="submit">추가</button></div>
+    </form>
+  `; }
 
-      filtered.forEach(emp => {
-        const card = document.createElement('div');
-        card.style.background = '#071428';
-        card.style.padding = '12px';
-        card.style.borderRadius = '8px';
-        card.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.02)';
-        card.style.display = 'flex';
-        card.style.flexDirection = 'column';
+  // wire tabs
+  document.getElementById('tabEmployees').addEventListener('click',()=>{ showPanel('employees'); renderEmployees(); });
+  document.getElementById('tabOrg').addEventListener('click',()=>{ showPanel('org'); renderOrg(); });
+  document.getElementById('tabProjects').addEventListener('click',()=>{ showPanel('projects'); renderProjects(); });
+  document.getElementById('tabTalent').addEventListener('click',()=>{ showPanel('talent'); renderTalent(); });
+  document.getElementById('tabAdd').addEventListener('click',()=>{ showPanel('add'); renderAdd(); });
 
-        const nameRow = document.createElement('div'); nameRow.style.display='flex'; nameRow.style.justifyContent='space-between'; nameRow.style.alignItems='center';
-        const name = document.createElement('div'); name.textContent = emp.name || emp.name_kor || 'Unknown'; name.style.fontWeight='700'; name.style.fontSize='16px';
-        const age = document.createElement('div'); age.textContent = (emp.age? emp.age + '세' : ''); age.style.fontSize='13px'; age.style.opacity='0.9';
-        nameRow.appendChild(name); nameRow.appendChild(age);
-
-        const role = document.createElement('div'); role.textContent = emp.title || emp.role || ''; role.style.color='#cfe6ff'; role.style.marginTop='8px'; role.style.fontSize='13px';
-        const division = document.createElement('div'); division.textContent = normalizeDivision(emp.division || emp.div || emp['division'] || ''); division.style.fontSize='12px'; division.style.color='#9fb3d6'; division.style.marginTop='6px';
-
-        const traits = document.createElement('div'); traits.style.display='flex'; traits.style.flexWrap='wrap'; traits.style.gap='6px'; traits.style.marginTop='10px';
-        const tlist = emp.personality || emp.personalityTraits || emp.traits || emp.personality || emp.personality || [];
-        (Array.isArray(tlist) ? tlist : (tlist? [tlist] : [])).forEach(t=>{ const chip=document.createElement('div'); chip.textContent=t; chip.style.padding='6px 8px'; chip.style.fontSize='12px'; chip.style.background='#061526'; chip.style.borderRadius='6px'; chip.style.color='#bfe9ff'; traits.appendChild(chip)});
-
-        card.appendChild(nameRow); card.appendChild(role); card.appendChild(division); card.appendChild(traits);
-        cardsEl.appendChild(card);
-      });
-    }
-
-    function setActiveFilter(name){
-      activeDivision = name;
-      filterButtons.forEach(b => {
-        if(b.getAttribute('data-division')===name){ b.style.background = '#1b4f72'; b.style.color='#fff'; b.style.border='1px solid #1b4f72' }
-        else { b.style.background = '#071428'; b.style.color='#9fb3d6'; b.style.border='1px solid #0b2940' }
-      });
-      render();
-    }
-
-    // wire filter buttons in aside AND top small container
-    filterButtons.forEach(b=>{ b.addEventListener('click',()=> setActiveFilter(b.getAttribute('data-division'))) });
-
-    // allow quick keyboard search
-    searchEl.addEventListener('input', e=>{ q = e.target.value.trim(); render(); });
-
-    // embedded employees data (inlined to avoid file:// CORS)
-    const EMBEDDED = {
-      "employees": [
-    { "id": 1,  "name": "정도현", "age": 58, "title": "대표이사(CEO)", "division": "경영진", "personality": "결단력 있고 카리스마가 강하지만 때로 독선적", "strength": "큰 그림을 읽는 통찰력과 인맥", "weakness": "디테일을 잘 챙기지 못함", "expertise": "전략기획, 조직경영" },
-    { "id": 2,  "name": "강민수", "age": 49, "title": "연구부문장(상무)", "division": "연구부문", "personality": "꼼꼼하고 논리적이며 신중함", "strength": "데이터 해석과 보고서 품질관리", "weakness": "변화에 보수적", "expertise": "정책연구, 통계분석" },
-    { "id": 3,  "name": "이서연", "age": 41, "title": "수석연구위원", "division": "연구부문", "personality": "차분하고 분석적이며 경청을 잘함", "strength": "복잡한 사회현상 구조화", "weakness": "결정을 미루는 경향", "expertise": "사회조사방법론" },
-    { "id": 4,  "name": "박준영", "age": 38, "title": "책임연구원", "division": "연구부문", "personality": "호기심 많고 적극적", "strength": "신속한 자료 수집과 트렌드 포착", "weakness": "마무리가 약함", "expertise": "여론조사 설계" },
-    { "id": 5,  "name": "최유진", "age": 35, "title": "책임연구원", "division": "연구부문", "personality": "완벽주의적이고 책임감 강함", "strength": "정량분석 정확도", "weakness": "지나친 자기검열로 속도 저하", "expertise": "계량경제 분석" },
-    { "id": 6,  "name": "김도윤", "age": 33, "title": "선임연구원", "division": "연구부문", "personality": "낙천적이고 협업을 즐김", "strength": "팀 분위기 메이커", "weakness": "비판에 약함", "expertise": "정성연구, 인터뷰" },
-    { "id": 7,  "name": "한소희", "age": 31, "title": "선임연구원", "division": "연구부문", "personality": "조용하지만 집요함", "strength": "데이터 클리닝과 검증", "weakness": "의견 표현이 소극적", "expertise": "데이터 전처리" },
-    { "id": 8,  "name": "오태경", "age": 36, "title": "선임연구원", "division": "연구부문", "personality": "직설적이고 추진력 있음", "strength": "프로젝트 드라이브", "weakness": "표현이 거칠어 마찰", "expertise": "정책영향평가" },
-    { "id": 9,  "name": "신예린", "age": 29, "title": "연구원", "division": "연구부문", "personality": "성실하고 배움에 열정적", "strength": "통계패키지 활용 능력", "weakness": "경험 부족", "expertise": "R, Python 데이터분석" },
-    { "id": 10, "name": "장현우", "age": 30, "title": "연구원", "division": "연구부문", "personality": "창의적이고 자유분방", "strength": "시각화·인포그래픽", "weakness": "규칙적 업무에 약함", "expertise": "데이터 시각화" },
-    { "id": 11, "name": "윤채원", "age": 28, "title": "연구원", "division": "연구부문", "personality": "꼼꼼하고 차분함", "strength": "설문 문항 설계", "weakness": "멀티태스킹 약함", "expertise": "설문조사 설계" },
-    { "id": 12, "name": "배성민", "age": 34, "title": "선임연구원", "division": "연구부문", "personality": "분석적이며 토론을 즐김", "strength": "거시경제 동향 해석", "weakness": "고집이 셈", "expertise": "경제정책 분석" },
-    { "id": 13, "name": "임하늘", "age": 27, "title": "연구원", "division": "연구부문", "personality": "밝고 사교적", "strength": "현장 조사 친화력", "weakness": "꼼꼼함 부족", "expertise": "현장 여론조사" },
-    { "id": 14, "name": "권지호", "age": 32, "title": "선임연구원", "division": "연구부문", "personality": "이성적이고 객관적", "strength": "통계 모델링", "weakness": "감정적 소통에 둔감", "expertise": "예측모델링" },
-    { "id": 15, "name": "송다은", "age": 26, "title": "연구원", "division": "연구부문", "personality": "성실하고 겸손함", "strength": "문헌조사·정리", "weakness": "자신감 부족", "expertise": "선행연구 검토" },
-    { "id": 16, "name": "조현석", "age": 44, "title": "수석연구위원", "division": "연구부문", "personality": "온화하지만 원칙적", "strength": "연구 윤리·방법론 자문", "weakness": "신기술 수용 더딤", "expertise": "연구설계, 검증" },
-    { "id": 17, "name": "문가영", "age": 37, "title": "책임연구원", "division": "연구부문", "personality": "활동적이고 추진력 있음", "strength": "프로젝트 일정 관리", "weakness": "완벽주의로 인한 압박", "expertise": "복지정책 연구" },
-    { "id": 18, "name": "노준혁", "age": 39, "title": "책임연구원", "division": "연구부문", "personality": "신중하고 보수적", "strength": "리스크 사전 식별", "weakness": "변화 거부감", "expertise": "재정·예산 분석" },
-    { "id": 19, "name": "황수아", "age": 30, "title": "연구원", "division": "연구부문", "personality": "긍정적이고 적응력 높음", "strength": "다양한 주제 학습", "weakness": "전문성 깊이 부족", "expertise": "교육정책 조사" },
-
-    { "id": 20, "name": "윤서진", "age": 47, "title": "과제수행부문장(상무)", "division": "과제수행부문", "personality": "추진력 강하고 현실적", "strength": "수주 협상과 성과 관리", "weakness": "워라밸 무시 경향", "expertise": "사업기획, PM" },
-    { "id": 21, "name": "이강훈", "age": 42, "title": "수석컨설턴트", "division": "과제수행부문", "personality": "침착하고 위기에 강함", "strength": "이해관계자 조율", "weakness": "위임을 잘 못함", "expertise": "공공사업 관리" },
-    { "id": 22, "name": "정유나", "age": 38, "title": "책임컨설턴트", "division": "과제수행부문", "personality": "꼼꼼하고 책임감 강함", "strength": "문서·산출물 품질관리", "weakness": "변수 대응 경직", "expertise": "제안서 작성" },
-    { "id": 23, "name": "김태현", "age": 36, "title": "책임컨설턴트", "division": "과제수행부문", "personality": "외향적이고 설득력 있음", "strength": "발주처 커뮤니케이션", "weakness": "내부 보고 소홀", "expertise": "고객 관계 관리" },
-    { "id": 24, "name": "박서윤", "age": 33, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "차분하고 분석적", "strength": "데이터 기반 의사결정", "weakness": "속도가 느림", "expertise": "성과지표(KPI) 설계" },
-    { "id": 25, "name": "최동민", "age": 35, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "에너지 넘치고 도전적", "strength": "신규 사업 발굴", "weakness": "리스크 과소평가", "expertise": "신사업 기획" },
-    { "id": 26, "name": "한예슬", "age": 31, "title": "컨설턴트", "division": "과제수행부문", "personality": "성실하고 협조적", "strength": "일정·자원 관리", "weakness": "거절을 못함", "expertise": "프로젝트 운영" },
-    { "id": 27, "name": "오승준", "age": 34, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "논리적이고 체계적", "strength": "프로세스 표준화", "weakness": "융통성 부족", "expertise": "PMO, 품질관리" },
-    { "id": 28, "name": "신지아", "age": 29, "title": "컨설턴트", "division": "과제수행부문", "personality": "밝고 적극적", "strength": "워크숍 진행·퍼실리테이션", "weakness": "세부 디테일 누락", "expertise": "이해관계자 워크숍" },
-    { "id": 29, "name": "장민재", "age": 37, "title": "책임컨설턴트", "division": "과제수행부문", "personality": "냉철하고 결과지향적", "strength": "예산·원가 관리", "weakness": "팀원 배려 부족", "expertise": "용역 원가관리" },
-    { "id": 30, "name": "윤도경", "age": 32, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "유연하고 친화적", "strength": "부서 간 협업 조율", "weakness": "주관이 약함", "expertise": "협업·조정" },
-    { "id": 31, "name": "임수빈", "age": 28, "title": "컨설턴트", "division": "과제수행부문", "personality": "꼼꼼하고 차분함", "strength": "회의록·산출물 정리", "weakness": "발표에 긴장", "expertise": "문서관리" },
-    { "id": 32, "name": "권상우", "age": 40, "title": "수석컨설턴트", "division": "과제수행부문", "personality": "노련하고 균형감 있음", "strength": "복합 프로젝트 총괄", "weakness": "신기술 학습 더딤", "expertise": "대형 용역 총괄" },
-    { "id": 33, "name": "송재희", "age": 30, "title": "컨설턴트", "division": "과제수행부문", "personality": "창의적이고 능동적", "strength": "솔루션 아이디어 제안", "weakness": "실행 지속성 약함", "expertise": "서비스 기획" },
-    { "id": 34, "name": "조은별", "age": 27, "title": "컨설턴트", "division": "과제수행부문", "personality": "성실하고 겸손함", "strength": "데이터 정리·리서치", "weakness": "경험 부족", "expertise": "리서치 지원" },
-    { "id": 35, "name": "문태웅", "age": 39, "title": "책임컨설턴트", "division": "과제수행부문", "personality": "현실적이고 추진력 강함", "strength": "납기 준수와 협상", "weakness": "고압적 태도", "expertise": "공공조달·계약" },
-    { "id": 36, "name": "황민서", "age": 33, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "분석적이고 신중함", "strength": "리스크 관리 계획", "weakness": "지나친 신중함", "expertise": "리스크 관리" },
-
-    { "id": 37, "name": "한지욱", "age": 46, "title": "정치컨설팅부문장(상무)", "division": "정치컨설팅부문", "personality": "전략적이고 직관이 날카로움", "strength": "선거 판세 읽기", "weakness": "감정 기복", "expertise": "선거전략, 캠페인 총괄" },
-    { "id": 38, "name": "이재원", "age": 43, "title": "수석컨설턴트", "division": "정치컨설팅부문", "personality": "달변이고 설득력 있음", "strength": "메시지·프레이밍", "weakness": "원칙보다 효과 우선", "expertise": "정치 메시지 전략" },
-    { "id": 39, "name": "정하린", "age": 36, "title": "책임컨설턴트", "division": "정치컨설팅부문", "personality": "예리하고 빠른 판단", "strength": "이슈 대응·순발력", "weakness": "장기계획 소홀", "expertise": "위기관리·대응" },
-    { "id": 40, "name": "김선우", "age": 38, "title": "책임컨설턴트", "division": "정치컨설팅부문", "personality": "차분하고 데이터지향적", "strength": "유권자 분석", "weakness": "현장 감각 부족", "expertise": "선거 데이터 분석" },
-    { "id": 41, "name": "박지민", "age": 32, "title": "선임컨설턴트", "division": "정치컨설팅부문", "personality": "감각적이고 트렌디함", "strength": "SNS·디지털 캠페인", "weakness": "지구력 부족", "expertise": "디지털 선거운동" },
-    { "id": 42, "name": "최서아", "age": 34, "title": "선임컨설턴트", "division": "정치컨설팅부문", "personality": "섬세하고 공감력 높음", "strength": "스피치·연설문 작성", "weakness": "거절·비판에 약함", "expertise": "연설문·스피치라이팅" },
-    { "id": 43, "name": "한도훈", "age": 30, "title": "컨설턴트", "division": "정치컨설팅부문", "personality": "열정적이고 헌신적", "strength": "현장 캠페인 운영", "weakness": "감정 과몰입", "expertise": "현장 조직·동원" },
-    { "id": 44, "name": "오나경", "age": 35, "title": "책임컨설턴트", "division": "정치컨설팅부문", "personality": "냉철하고 전략적", "strength": "경쟁후보 분석", "weakness": "융통성 부족", "expertise": "상대 진영 분석" },
-    { "id": 45, "name": "신우성", "age": 41, "title": "수석컨설턴트", "division": "정치컨설팅부문", "personality": "노련하고 인맥이 넓음", "strength": "정·관계 네트워킹", "weakness": "디지털 둔감", "expertise": "정무 자문" },
-    { "id": 46, "name": "장유빈", "age": 29, "title": "컨설턴트", "division": "정치컨설팅부문", "personality": "민첩하고 호기심 많음", "strength": "여론 모니터링", "weakness": "성급한 결론", "expertise": "미디어 모니터링" },
-    { "id": 47, "name": "윤소율", "age": 31, "title": "선임컨설턴트", "division": "정치컨설팅부문", "personality": "창의적이고 표현력 좋음", "strength": "브랜딩·이미지 컨설팅", "weakness": "데이터 경시", "expertise": "후보 이미지 메이킹" },
-    { "id": 48, "name": "임건우", "age": 37, "title": "책임컨설턴트", "division": "정치컨설팅부문", "personality": "단호하고 추진력 강함", "strength": "캠페인 실행 총괄", "weakness": "독선적", "expertise": "캠페인 운영 관리" },
-    { "id": 49, "name": "권나윤", "age": 28, "title": "컨설턴트", "division": "정치컨설팅부문", "personality": "성실하고 밝음", "strength": "홍보물·콘텐츠 제작", "weakness": "경험 부족", "expertise": "정치 홍보 콘텐츠" },
-    { "id": 50, "name": "조민혁", "age": 33, "title": "선임컨설턴트", "division": "정치컨설팅부문", "personality": "분석적이고 신중함", "strength": "정책공약 설계", "weakness": "결정 지연", "expertise": "공약·정책 개발" }
-      ]
-    };
-
-    employees = EMBEDDED.employees || EMBEDDED;
-    // normalize each person's fields for compatibility and include extra fields
-    employees = employees.map(e=>({
-      id: e.id,
-      name: e.name,
-      age: e.age,
-      title: e.title || e.role || '',
-      division: e.division || e.div || e['division'] || '',
-      personality: Array.isArray(e.personality) ? e.personality : (e.traits || e['traits'] ? (Array.isArray(e.traits) ? e.traits : [e.traits]) : (e.personality && typeof e.personality === 'string' ? [e.personality] : [])),
-      strength: e.strength || e.strengths || '',
-      weakness: e.weakness || e.weaknesses || '',
-      expertise: e.expertise || ''
-    }));
-
-    // --- UI helpers: profile modal, edit form, org view ---
-    function showProfile(emp){
-      const wrap = document.createElement('div');
-      const closeBtn = document.createElement('button'); closeBtn.textContent='닫기'; closeBtn.style.float='right'; closeBtn.style.background='#17475e'; closeBtn.style.color='#fff'; closeBtn.style.border='none'; closeBtn.style.padding='6px 8px'; closeBtn.style.borderRadius='6px'; closeBtn.style.cursor='pointer';
-      closeBtn.addEventListener('click',closeModal);
-      const h = document.createElement('h2'); h.textContent = emp.name; h.style.margin='6px 0 4px 0';
-      const meta = document.createElement('div'); meta.style.color='#9fb3d6'; meta.style.fontSize='13px'; meta.textContent = (emp.age? emp.age+'세 • ' : '') + (emp.title || '');
-      const divline = document.createElement('div'); divline.style.marginTop='8px'; divline.textContent = '부문: ' + (emp.division || '');
-      const pers = document.createElement('div'); pers.style.marginTop='10px'; pers.innerHTML = '<strong>성격/특성:</strong> ' + (Array.isArray(emp.personality)? emp.personality.join(', '): emp.personality || '');
-      const s = document.createElement('div'); s.style.marginTop='8px'; s.innerHTML = '<strong>강점:</strong> ' + (emp.strength || '');
-      const w = document.createElement('div'); w.style.marginTop='6px'; w.innerHTML = '<strong>약점:</strong> ' + (emp.weakness || '');
-      const ex = document.createElement('div'); ex.style.marginTop='6px'; ex.innerHTML = '<strong>전문분야:</strong> ' + (emp.expertise || '');
-      wrap.appendChild(closeBtn); wrap.appendChild(h); wrap.appendChild(meta); wrap.appendChild(divline); wrap.appendChild(pers); wrap.appendChild(s); wrap.appendChild(w); wrap.appendChild(ex);
-      openModal(wrap);
-    }
-
-    function showEditForm(emp){
-      const isNew = !emp;
-      const data = emp ? Object.assign({}, emp) : { id: (Math.max(0,...employees.map(x=>x.id))+1), name:'', age:'', title:'', division:'', personality:[], strength:'', weakness:'', expertise:'' };
-      editSession.mode = isNew? 'add':'edit'; editSession.id = data.id;
-      const form = document.createElement('div');
-      const title = document.createElement('h2'); title.textContent = isNew? '직원 추가':'직원 편집';
-      form.appendChild(title);
-      function addField(labelText, val){ const lbl=document.createElement('div'); lbl.style.marginTop='8px'; const lab=document.createElement('div'); lab.style.fontSize='13px'; lab.style.color='#9fb3d6'; lab.textContent=labelText; const inp=document.createElement('input'); inp.value=val||''; inp.style.width='100%'; inp.style.padding='8px'; inp.style.marginTop='6px'; inp.style.borderRadius='6px'; inp.style.background='#061226'; inp.style.border='1px solid #123245'; inp.style.color='#e6eef8'; lbl.appendChild(lab); lbl.appendChild(inp); form.appendChild(lbl); return inp; }
-      const inName = addField('이름', data.name);
-      const inAge = addField('나이', data.age);
-      const inTitle = addField('직책/역할', data.title);
-      const inDivision = addField('부문', data.division);
-      const inPerson = addField('성격(쉼표로 구분)', Array.isArray(data.personality)? data.personality.join(', '): data.personality);
-      const inStrength = addField('강점', data.strength);
-      const inWeak = addField('약점', data.weakness);
-      const inExp = addField('전문분야', data.expertise);
-      const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginTop='12px';
-      const saveBtn = document.createElement('button'); saveBtn.textContent='저장'; saveBtn.style.background='#1b6f3a'; saveBtn.style.color='#fff'; saveBtn.style.border='none'; saveBtn.style.padding='8px 12px'; saveBtn.style.borderRadius='6px'; saveBtn.style.cursor='pointer';
-      const cancelBtn = document.createElement('button'); cancelBtn.textContent='취소'; cancelBtn.style.background='#123245'; cancelBtn.style.color='#cfe6ff'; cancelBtn.style.border='none'; cancelBtn.style.padding='8px 12px'; cancelBtn.style.borderRadius='6px'; cancelBtn.style.cursor='pointer';
-      row.appendChild(saveBtn); row.appendChild(cancelBtn); form.appendChild(row);
-      cancelBtn.addEventListener('click', closeModal);
-      saveBtn.addEventListener('click', ()=>{
-        const updated = {
-          id: data.id,
-          name: inName.value.trim(),
-          age: Number(inAge.value) || inAge.value || '',
-          title: inTitle.value.trim(),
-          division: inDivision.value.trim(),
-          personality: inPerson.value.split(',').map(s=>s.trim()).filter(Boolean),
-          strength: inStrength.value.trim(),
-          weakness: inWeak.value.trim(),
-          expertise: inExp.value.trim()
-        };
-        if(isNew){ employees.push(updated); }
-        else { const idx = employees.findIndex(x=>x.id===data.id); if(idx!==-1) employees[idx]=Object.assign(employees[idx], updated); }
-        closeModal(); render(); if(viewMode==='org') renderOrg();
-      });
-      openModal(form);
-    }
-
-    function showProfileOrEdit(emp){ showProfile(emp); }
-
-    function render(){
-      const filtered = employees.filter(emp => {
-        const div = normalizeDivision(emp.division || emp.div || emp['division']);
-        const divisionMatch = activeDivision === '전체' || div === activeDivision;
-        return divisionMatch && matchName(emp, q);
-      });
-
-      cardsEl.innerHTML = '';
-      countEl.textContent = filtered.length + '/' + employees.length;
-      if(filtered.length === 0){ noResultsEl.style.display = 'block'; } else { noResultsEl.style.display = 'none'; }
-
-      filtered.forEach(emp => {
-        const card = document.createElement('div');
-        card.style.background = '#071428';
-        card.style.padding = '12px';
-        card.style.borderRadius = '8px';
-        card.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.02)';
-        card.style.display = 'flex';
-        card.style.flexDirection = 'column';
-        card.style.cursor = 'pointer';
-
-        const nameRow = document.createElement('div'); nameRow.style.display='flex'; nameRow.style.justifyContent='space-between'; nameRow.style.alignItems='center';
-        const name = document.createElement('div'); name.textContent = emp.name || 'Unknown'; name.style.fontWeight='700'; name.style.fontSize='16px';
-        const age = document.createElement('div'); age.textContent = (emp.age? emp.age + '세' : ''); age.style.fontSize='13px'; age.style.opacity='0.9';
-        nameRow.appendChild(name); nameRow.appendChild(age);
-
-        const role = document.createElement('div'); role.textContent = emp.title || ''; role.style.color='#cfe6ff'; role.style.marginTop='8px'; role.style.fontSize='13px';
-        const division = document.createElement('div'); division.textContent = normalizeDivision(emp.division || emp.div || emp['division'] || ''); division.style.fontSize='12px'; division.style.color='#9fb3d6'; division.style.marginTop='6px';
-
-        const traits = document.createElement('div'); traits.style.display='flex'; traits.style.flexWrap='wrap'; traits.style.gap='6px'; traits.style.marginTop='10px';
-        (Array.isArray(emp.personality) ? emp.personality : []).forEach(t=>{ const chip=document.createElement('div'); chip.textContent=t; chip.style.padding='6px 8px'; chip.style.fontSize='12px'; chip.style.background='#061526'; chip.style.borderRadius='6px'; chip.style.color='#bfe9ff'; traits.appendChild(chip)});
-
-        const footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='flex-end'; footer.style.gap='8px'; footer.style.marginTop='12px';
-        const viewBtn = document.createElement('button'); viewBtn.textContent='보기'; viewBtn.style.padding='6px 10px'; viewBtn.style.borderRadius='6px'; viewBtn.style.border='none'; viewBtn.style.background='#15405a'; viewBtn.style.color='#fff'; viewBtn.style.cursor='pointer';
-        const editBtn = document.createElement('button'); editBtn.textContent='편집'; editBtn.style.padding='6px 10px'; editBtn.style.borderRadius='6px'; editBtn.style.border='none'; editBtn.style.background='#5a3f1b'; editBtn.style.color='#fff'; editBtn.style.cursor='pointer';
-        footer.appendChild(viewBtn); footer.appendChild(editBtn);
-
-        viewBtn.addEventListener('click', (e)=>{ e.stopPropagation(); showProfile(emp); });
-        editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); showEditForm(emp); });
-        card.addEventListener('click', ()=>{ showProfile(emp); });
-
-        card.appendChild(nameRow); card.appendChild(role); card.appendChild(division); card.appendChild(traits); card.appendChild(footer);
-        cardsEl.appendChild(card);
-      });
-    }
-
-    // ORGANIZATIONAL VIEW
-    function renderOrg(){
-      orgEl.innerHTML='';
-      // find CEO
-      const ceo = employees.find(e=> (e.title && e.title.indexOf('대표')!==-1) || (e.division && e.division.indexOf('경영')!==-1)) || employees[0];
-      const divisions = ['연구부문','과제수행','정치컨설팅'];
-      const container = document.createElement('div'); container.style.display='flex'; container.style.flexDirection='column'; container.style.gap='12px';
-      // CEO
-      const ceoBox = document.createElement('div'); ceoBox.style.padding='12px'; ceoBox.style.borderRadius='8px'; ceoBox.style.background='#061526'; ceoBox.style.textAlign='center'; ceoBox.innerHTML = '<div style="font-weight:700">'+(ceo.name||'')+'</div><div style="font-size:12px;color:#9fb3d6">'+(ceo.title||'')+'</div>';
-      container.appendChild(ceoBox);
-      const row = document.createElement('div'); row.style.display='flex'; row.style.gap='12px'; row.style.marginTop='6px';
-      divisions.forEach(div => {
-        const col = document.createElement('div'); col.style.flex='1'; col.style.background='#071428'; col.style.padding='10px'; col.style.borderRadius='8px';
-        const head = employees.find(e=> normalizeDivision(e.division)===div && /부문장|상무|부문장|부장|장/.test(e.title)) || employees.find(e=> normalizeDivision(e.division)===div);
-        const headHtml = head? ('<div style="font-weight:700">'+head.name+'</div><div style="font-size:12px;color:#9fb3d6">'+(head.title||'')+'</div>') : '<div style="color:#9fb3d6">(공석)</div>';
-        const members = employees.filter(e=> normalizeDivision(e.division)===div && e!==head);
-        const membersList = document.createElement('div'); membersList.style.marginTop='8px'; members.forEach(m=>{ const mdiv=document.createElement('div'); mdiv.style.padding='6px 0'; mdiv.style.borderBottom='1px solid rgba(255,255,255,0.02)'; mdiv.style.fontSize='13px'; mdiv.style.cursor='pointer'; mdiv.textContent = m.name + ' • ' + (m.title||''); mdiv.addEventListener('click', ()=> showProfile(m)); membersList.appendChild(mdiv)});
-        col.innerHTML = '<div style="font-size:13px;color:#9fb3d6;margin-bottom:6px">'+div+'</div>' + headHtml;
-        col.appendChild(membersList);
-        row.appendChild(col);
-      });
-      container.appendChild(row);
-      orgEl.appendChild(container);
-    }
-
-    // tabs
-    tabCards.addEventListener('click', ()=>{ viewMode='cards'; cardsEl.parentElement.style.display='block'; orgEl.style.display='none'; projectsEl.style.display='none'; document.getElementById('talentView').style.display='none'; tabCards.style.background='#15405a'; tabOrg.style.background='#071428'; tabProjects.style.background='#071428'; render(); });
-    tabOrg.addEventListener('click', ()=>{ viewMode='org'; cardsEl.parentElement.style.display='none'; orgEl.style.display='block'; projectsEl.style.display='none'; document.getElementById('talentView').style.display='none'; tabOrg.style.background='#15405a'; tabCards.style.background='#071428'; tabProjects.style.background='#071428'; renderOrg(); });
-    tabProjects.addEventListener('click', ()=>{ viewMode='projects'; cardsEl.parentElement.style.display='none'; orgEl.style.display='none'; projectsEl.style.display='block'; document.getElementById('talentView').style.display='none'; tabProjects.style.background='#15405a'; tabCards.style.background='#071428'; tabOrg.style.background='#071428'; renderProjects(); });
-
-    // add employee
-    addEmployeeBtn.addEventListener('click', ()=> showEditForm(null));
-
-    render();
-
-    // embedded projects data (inlined)
-    const EMBEDDED_PROJECTS = {
-      projects: [
-        { id:1, name:'스마트도시 여론분석', client:'서울시청', budget_krw:150000000, status:'진행중', assigned_employee_ids:[2,3,9,12], start_date:'2026-01-15', deadline:'2026-07-30', progress:42 },
-        { id:2, name:'지역경제 활성화 전략', client:'강원도청', budget_krw:82000000, status:'입찰중', assigned_employee_ids:[5,6,13], start_date:'2026-03-01', deadline:'2026-12-31', progress:10 },
-        { id:3, name:'디지털 캠페인 성과분석', client:'모바일캠페인사', budget_krw:60000000, status:'진행중', assigned_employee_ids:[41,40,47,23], start_date:'2026-02-10', deadline:'2026-05-20', progress:68 },
-        { id:4, name:'교육정책 연구용역', client:'교육연구원', budget_krw:98000000, status:'완료', assigned_employee_ids:[19,15,11], start_date:'2025-08-01', deadline:'2026-02-28', progress:100 },
-        { id:5, name:'공공사업 PMO 지원', client:'국토사업단', budget_krw:210000000, status:'진행중', assigned_employee_ids:[20,21,32,27], start_date:'2025-11-01', deadline:'2026-11-01', progress:55 },
-        { id:6, name:'선거여론 모니터링 플랫폼', client:'정치연구소', budget_krw:125000000, status:'진행중', assigned_employee_ids:[37,38,41,46], start_date:'2026-03-15', deadline:'2026-09-30', progress:33 },
-        { id:7, name:'사회지표 데이터 정비', client:'통계센터', budget_krw:45000000, status:'입찰중', assigned_employee_ids:[6,7,12,34], start_date:'2026-04-01', deadline:'2026-08-31', progress:5 },
-        { id:8, name:'정책영향 모델링 고도화', client:'정책기획처', budget_krw:175000000, status:'진행중', assigned_employee_ids:[2,14,16,45], start_date:'2026-01-05', deadline:'2026-10-15', progress:47 },
-        { id:9, name:'공공의사소통 전략 수립', client:'시민소통센터', budget_krw:68000000, status:'완료', assigned_employee_ids:[33,49,29], start_date:'2025-06-01', deadline:'2025-12-20', progress:100 },
-        { id:10, name:'신규사업 기획 파일럿', client:'스타트업연합', budget_krw:54000000, status:'진행중', assigned_employee_ids:[25,31,38], start_date:'2026-04-10', deadline:'2026-09-10', progress:21 }
-      ]
-    };
-
-    const projects = EMBEDDED_PROJECTS.projects || [];
-
-    function renderProjects(){
-      projectsEl.innerHTML = '';
-      const header = document.createElement('div'); header.style.display='flex'; header.style.justifyContent='space-between'; header.style.alignItems='center'; header.style.marginBottom='8px';
-      const h = document.createElement('div'); h.textContent='프로젝트 목록'; h.style.fontWeight='700'; h.style.fontSize='16px';
-      header.appendChild(h);
-      projectsEl.appendChild(header);
-
-      projects.forEach(p=>{
-        const box = document.createElement('div'); box.style.background='#061526'; box.style.padding='10px'; box.style.borderRadius='8px'; box.style.marginBottom='8px';
-        const title = document.createElement('div'); title.style.fontWeight='700'; title.textContent = p.name + ' ('+p.status+')';
-        const meta = document.createElement('div'); meta.style.color='#9fb3d6'; meta.style.fontSize='13px'; meta.textContent = p.client + ' • 예산 ' + (p.budget_krw).toLocaleString() + '원';
-        const dates = document.createElement('div'); dates.style.marginTop='6px'; dates.style.fontSize='13px'; dates.style.color='#cfe6ff'; dates.textContent = '기간: ' + p.start_date + ' → ' + p.deadline + ' • 진행 ' + p.progress + '%';
-        const ass = document.createElement('div'); ass.style.marginTop='8px'; ass.style.display='flex'; ass.style.flexWrap='wrap'; ass.style.gap='6px';
-        (p.assigned_employee_ids || []).forEach(id=>{ const emp = employees.find(e=>e.id===id); const chip=document.createElement('div'); chip.style.padding='6px 8px'; chip.style.background='#071428'; chip.style.borderRadius='6px'; chip.style.cursor='pointer'; chip.style.color='#bfe9ff'; chip.textContent = emp? emp.name : ('ID:'+id); chip.addEventListener('click', ()=> emp && showProfile(emp)); ass.appendChild(chip); });
-        box.appendChild(title); box.appendChild(meta); box.appendChild(dates); box.appendChild(ass);
-        projectsEl.appendChild(box);
-      });
-    }
-
-    // initial filter state
-    // --- Talent (인재개발) data and UI ---
-    // Full hardcoded TALENT data for employees 1..50 (역량, 교육, 커리어, 월별 성과)
-    const TALENT = {
-      1: { scores:{전문성:95,리더십:92,협업:85,성과:93,소통:88}, courses:[{name:'리더십 고급',category:'커뮤니케이션',status:'completed'},{name:'법률/윤리 워크숍',category:'법률/윤리',status:'completed'}], career:{level:'부문장'}, monthly:{'2026-01':94,'2026-02':92,'2026-03':93,'2026-04':95,'2026-05':94,'2026-06':95} },
-      2: { scores:{전문성:88,리더십:80,협업:82,성과:85,소통:79}, courses:[{name:'AI 활용 기본',category:'AI활용',status:'completed'},{name:'정책연구 심화',category:'정책연구',status:'in-progress'},{name:'프로젝트관리 기초',category:'프로젝트관리',status:'planned'}], career:{level:'연구부문장(상무)'}, monthly:{'2026-01':86,'2026-02':84,'2026-03':85,'2026-04':87,'2026-05':86,'2026-06':85} },
-      3: { scores:{전문성:90,리더십:78,협업:80,성과:88,소통:82}, courses:[{name:'사회조사방법론 고급',category:'정책연구',status:'completed'},{name:'커뮤니케이션 스킬',category:'커뮤니케이션',status:'completed'}], career:{level:'수석연구위원'}, monthly:{'2026-01':88,'2026-02':89,'2026-03':87,'2026-04':90,'2026-05':88,'2026-06':89} },
-      4: { scores:{전문성:75,리더십:70,협업:78,성과:76,소통:73}, courses:[{name:'여론조사 설계',category:'정책연구',status:'completed'},{name:'데이터 클리닝',category:'AI활용',status:'in-progress'}], career:{level:'책임연구원'}, monthly:{'2026-01':74,'2026-02':75,'2026-03':76,'2026-04':78,'2026-05':77,'2026-06':76} },
-      5: { scores:{전문성:86,리더십:72,협업:74,성과:80,소통:75}, courses:[{name:'계량분석 심화',category:'정책연구',status:'completed'},{name:'윤리교육',category:'법률/윤리',status:'planned'}], career:{level:'책임연구원'}, monthly:{'2026-01':82,'2026-02':83,'2026-03':84,'2026-04':85,'2026-05':84,'2026-06':83} },
-      6: { scores:{전문성:72,리더십:68,협업:80,성과:75,소통:70}, courses:[{name:'정성연구 고급',category:'정책연구',status:'completed'},{name:'커뮤니케이션 워크숍',category:'커뮤니케이션',status:'in-progress'}], career:{level:'선임연구원'}, monthly:{'2026-01':74,'2026-02':72,'2026-03':73,'2026-04':75,'2026-05':76,'2026-06':74} },
-      7: { scores:{전문성:78,리더십:66,협업:82,성과:70,소통:68}, courses:[{name:'데이터 전처리',category:'AI활용',status:'completed'},{name:'품질관리',category:'프로젝트관리',status:'planned'}], career:{level:'선임연구원'}, monthly:{'2026-01':72,'2026-02':74,'2026-03':75,'2026-04':76,'2026-05':75,'2026-06':74} },
-      8: { scores:{전문성:80,리더십:75,협업:79,성과:82,소통:70}, courses:[{name:'정책영향평가',category:'정책연구',status:'completed'},{name:'프로젝트리더십',category:'프로젝트관리',status:'in-progress'}], career:{level:'선임연구원'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':82,'2026-05':82,'2026-06':81} },
-      9: { scores:{전문성:70,리더십:60,협업:72,성과:68,소통:66}, courses:[{name:'R/Python 워크숍',category:'AI활용',status:'completed'},{name:'기초통계',category:'정책연구',status:'completed'}], career:{level:'연구원'}, monthly:{'2026-01':68,'2026-02':69,'2026-03':70,'2026-04':71,'2026-05':72,'2026-06':71} },
-      10:{ scores:{전문성:74,리더십:62,협업:70,성과:72,소통:69}, courses:[{name:'데이터 시각화',category:'AI활용',status:'completed'},{name:'스토리텔링',category:'커뮤니케이션',status:'in-progress'}], career:{level:'연구원'}, monthly:{'2026-01':71,'2026-02':72,'2026-03':73,'2026-04':74,'2026-05':73,'2026-06':74} },
-      11:{ scores:{전문성:69,리더십:60,협업:68,성과:66,소통:67}, courses:[{name:'설문 설계',category:'정책연구',status:'completed'},{name:'윤리교육',category:'법률/윤리',status:'completed'}], career:{level:'연구원'}, monthly:{'2026-01':66,'2026-02':67,'2026-03':68,'2026-04':69,'2026-05':68,'2026-06':69} },
-      12:{ scores:{전문성:82,리더십:74,협업:76,성과:80,소통:73}, courses:[{name:'거시경제 분석',category:'정책연구',status:'completed'},{name:'프레젠테이션',category:'커뮤니케이션',status:'in-progress'}], career:{level:'선임연구원'}, monthly:{'2026-01':80,'2026-02':81,'2026-03':82,'2026-04':83,'2026-05':82,'2026-06':81} },
-      13:{ scores:{전문성:68,리더십:58,협업:70,성과:65,소통:66}, courses:[{name:'현장조사 실습',category:'정책연구',status:'completed'},{name:'커뮤니케이션 기초',category:'커뮤니케이션',status:'planned'}], career:{level:'연구원'}, monthly:{'2026-01':65,'2026-02':66,'2026-03':67,'2026-04':68,'2026-05':67,'2026-06':68} },
-      14:{ scores:{전문성:88,리더십:76,협업:80,성과:85,소통:72}, courses:[{name:'예측모델링',category:'AI활용',status:'completed'},{name:'통계모델 심화',category:'정책연구',status:'completed'}], career:{level:'선임연구원'}, monthly:{'2026-01':84,'2026-02':85,'2026-03':86,'2026-04':87,'2026-05':86,'2026-06':85} },
-      15:{ scores:{전문성:66,리더십:58,협업:64,성과:62,소통:63}, courses:[{name:'문헌조사 기법',category:'정책연구',status:'completed'}], career:{level:'연구원'}, monthly:{'2026-01':63,'2026-02':64,'2026-03':65,'2026-04':64,'2026-05':65,'2026-06':64} },
-      16:{ scores:{전문성:90,리더십:82,협업:80,성과:88,소통:78}, courses:[{name:'연구방법론 자문',category:'정책연구',status:'completed'},{name:'윤리교육',category:'법률/윤리',status:'completed'}], career:{level:'수석연구위원'}, monthly:{'2026-01':88,'2026-02':89,'2026-03':90,'2026-04':90,'2026-05':89,'2026-06':90} },
-      17:{ scores:{전문성:78,리더십:72,협업:76,성과:79,소통:71}, courses:[{name:'프로젝트 일정관리',category:'프로젝트관리',status:'completed'}], career:{level:'책임연구원'}, monthly:{'2026-01':76,'2026-02':77,'2026-03':78,'2026-04':79,'2026-05':78,'2026-06':77} },
-      18:{ scores:{전문성:80,리더십:74,협업:75,성과:78,소통:70}, courses:[{name:'재정·예산 분석',category:'정책연구',status:'completed'},{name:'리스크 관리',category:'프로젝트관리',status:'in-progress'}], career:{level:'책임연구원'}, monthly:{'2026-01':77,'2026-02':78,'2026-03':78,'2026-04':79,'2026-05':78,'2026-06':78} },
-      19:{ scores:{전문성:72,리더십:66,협업:70,성과:71,소통:68}, courses:[{name:'교육정책 심화',category:'정책연구',status:'completed'}], career:{level:'연구원'}, monthly:{'2026-01':70,'2026-02':71,'2026-03':72,'2026-04':73,'2026-05':72,'2026-06':73} },
-      20:{ scores:{전문성:86,리더십:88,협업:84,성과:87,소통:80}, courses:[{name:'PMO 실무',category:'프로젝트관리',status:'completed'},{name:'법률/윤리 기본',category:'법률/윤리',status:'planned'}], career:{level:'과제수행부문장(상무)'}, monthly:{'2026-01':85,'2026-02':86,'2026-03':87,'2026-04':86,'2026-05':87,'2026-06':86} },
-      21:{ scores:{전문성:84,리더십:80,협업:83,성과:82,소통:78}, courses:[{name:'공공사업 관리',category:'프로젝트관리',status:'completed'}], career:{level:'수석컨설턴트'}, monthly:{'2026-01':82,'2026-02':83,'2026-03':84,'2026-04':83,'2026-05':84,'2026-06':83} },
-      22:{ scores:{전문성:78,리더십:72,협업:76,성과:77,소통:74}, courses:[{name:'제안서 작성',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':76,'2026-02':77,'2026-03':77,'2026-04':78,'2026-05':77,'2026-06':78} },
-      23:{ scores:{전문성:80,리더십:75,협업:78,성과:79,소통:81}, courses:[{name:'고객 커뮤니케이션',category:'커뮤니케이션',status:'completed'},{name:'품질관리',category:'프로젝트관리',status:'in-progress'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':78,'2026-02':79,'2026-03':80,'2026-04':81,'2026-05':80,'2026-06':79} },
-      24:{ scores:{전문성:76,리더십:70,협업:75,성과:74,소통:72}, courses:[{name:'KPI 설계',category:'프로젝트관리',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':74,'2026-02':75,'2026-03':76,'2026-04':76,'2026-05':75,'2026-06':76} },
-      25:{ scores:{전문성:82,리더십:74,협업:80,성과:78,소통:73}, courses:[{name:'신규사업 기획',category:'프로젝트관리',status:'in-progress'},{name:'발표 스킬',category:'커뮤니케이션',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':82,'2026-05':81,'2026-06':80} },
-      26:{ scores:{전문성:70,리더십:66,협업:72,성과:69,소통:68}, courses:[{name:'프로젝트 운영',category:'프로젝트관리',status:'completed'},{name:'타임매니지먼트',category:'커뮤니케이션',status:'planned'}], career:{level:'컨설턴트'}, monthly:{'2026-01':68,'2026-02':69,'2026-03':70,'2026-04':71,'2026-05':70,'2026-06':69} },
-      27:{ scores:{전문성:79,리더십:75,협업:80,성과:78,소통:74}, courses:[{name:'프로세스 표준화',category:'프로젝트관리',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':77,'2026-02':78,'2026-03':79,'2026-04':79,'2026-05':78,'2026-06':79} },
-      28:{ scores:{전문성:68,리더십:64,협업:70,성과:67,소통:69}, courses:[{name:'퍼실리테이션',category:'커뮤니케이션',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':66,'2026-02':67,'2026-03':68,'2026-04':69,'2026-05':68,'2026-06':69} },
-      29:{ scores:{전문성:83,리더십:76,협업:78,성과:81,소통:72}, courses:[{name:'예산·원가관리',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':80,'2026-02':81,'2026-03':81,'2026-04':82,'2026-05':81,'2026-06':82} },
-      30:{ scores:{전문성:75,리더십:70,협업:76,성과:74,소통:73}, courses:[{name:'협업조정',category:'프로젝트관리',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':74,'2026-02':75,'2026-03':76,'2026-04':76,'2026-05':75,'2026-06':76} },
-      31:{ scores:{전문성:69,리더십:62,협업:70,성과:68,소통:66}, courses:[{name:'문서관리',category:'정책연구',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':67,'2026-02':68,'2026-03':69,'2026-04':69,'2026-05':68,'2026-06':69} },
-      32:{ scores:{전문성:88,리더십:82,협업:84,성과:86,소통:78}, courses:[{name:'대형용역 총괄',category:'프로젝트관리',status:'completed'}], career:{level:'수석컨설턴트'}, monthly:{'2026-01':85,'2026-02':86,'2026-03':87,'2026-04':86,'2026-05':87,'2026-06':86} },
-      33:{ scores:{전문성:76,리더십:68,협업:74,성과:75,소통:71}, courses:[{name:'서비스 기획',category:'프로젝트관리',status:'in-progress'}], career:{level:'컨설턴트'}, monthly:{'2026-01':74,'2026-02':75,'2026-03':76,'2026-04':75,'2026-05':76,'2026-06':75} },
-      34:{ scores:{전문성:67,리더십:60,협업:69,성과:65,소통:66}, courses:[{name:'리서치 지원',category:'정책연구',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':66,'2026-02':67,'2026-03':68,'2026-04':67,'2026-05':68,'2026-06':67} },
-      35:{ scores:{전문성:81,리더십:74,협업:76,성과:80,소통:72}, courses:[{name:'공공조달·계약',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':80,'2026-05':81,'2026-06':80} },
-      36:{ scores:{전문성:77,리더십:72,협업:75,성과:76,소통:70}, courses:[{name:'리스크 관리',category:'프로젝트관리',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':75,'2026-02':76,'2026-03':76,'2026-04':77,'2026-05':76,'2026-06':77} },
-      37:{ scores:{전문성:89,리더십:90,협업:83,성과:88,소통:80}, courses:[{name:'선거전략 심화',category:'정책연구',status:'completed'},{name:'디지털 모니터링',category:'AI활용',status:'in-progress'}], career:{level:'정치컨설팅부문장(상무)'}, monthly:{'2026-01':88,'2026-02':89,'2026-03':90,'2026-04':89,'2026-05':90,'2026-06':89} },
-      38:{ scores:{전문성:84,리더십:78,협업:82,성과:83,소통:79}, courses:[{name:'메시지 전략',category:'정책연구',status:'completed'}], career:{level:'수석컨설턴트'}, monthly:{'2026-01':82,'2026-02':83,'2026-03':84,'2026-04':83,'2026-05':84,'2026-06':83} },
-      39:{ scores:{전문성:78,리더십:74,협업:76,성과:77,소통:75}, courses:[{name:'위기관리',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':76,'2026-02':77,'2026-03':78,'2026-04':77,'2026-05':78,'2026-06':77} },
-      40:{ scores:{전문성:82,리더십:76,협업:80,성과:81,소통:73}, courses:[{name:'유권자 분석',category:'정책연구',status:'completed'},{name:'데이터 시각화',category:'AI활용',status:'in-progress'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':80,'2026-02':81,'2026-03':82,'2026-04':81,'2026-05':82,'2026-06':81} },
-      41:{ scores:{전문성:79,리더십:72,협업:78,성과:77,소통:80}, courses:[{name:'SNS 캠페인',category:'AI활용',status:'completed'},{name:'브랜딩',category:'커뮤니케이션',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':78,'2026-02':79,'2026-03':80,'2026-04':79,'2026-05':80,'2026-06':79} },
-      42:{ scores:{전문성:80,리더십:74,협업:77,성과:78,소통:76}, courses:[{name:'연설문 작성',category:'커뮤니케이션',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':78,'2026-02':79,'2026-03':80,'2026-04':80,'2026-05':79,'2026-06':80} },
-      43:{ scores:{전문성:72,리더십:66,협업:74,성과:70,소통:69}, courses:[{name:'현장 운영',category:'프로젝트관리',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':70,'2026-02':71,'2026-03':72,'2026-04':71,'2026-05':72,'2026-06':71} },
-      44:{ scores:{전문성:83,리더십:78,협업:80,성과:82,소통:74}, courses:[{name:'경쟁후보 분석',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':81,'2026-02':82,'2026-03':82,'2026-04':83,'2026-05':82,'2026-06':83} },
-      45:{ scores:{전문성:88,리더십:84,협업:82,성과:86,소통:76}, courses:[{name:'정무 자문',category:'정책연구',status:'completed'}], career:{level:'수석컨설턴트'}, monthly:{'2026-01':85,'2026-02':86,'2026-03':87,'2026-04':86,'2026-05':87,'2026-06':86} },
-      46:{ scores:{전문성:70,리더십:64,협업:72,성과:68,소통:67}, courses:[{name:'미디어 모니터링',category:'AI활용',status:'in-progress'}], career:{level:'컨설턴트'}, monthly:{'2026-01':68,'2026-02':69,'2026-03':70,'2026-04':69,'2026-05':70,'2026-06':69} },
-      47:{ scores:{전문성:81,리더십:75,협업:80,성과:79,소통:78}, courses:[{name:'브랜딩 워크숍',category:'커뮤니케이션',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':80,'2026-05':81,'2026-06':80} },
-      48:{ scores:{전문성:84,리더십:78,협업:79,성과:82,소통:73}, courses:[{name:'캠페인 운영',category:'프로젝트관리',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':81,'2026-02':82,'2026-03':83,'2026-04':82,'2026-05':83,'2026-06':82} },
-      49:{ scores:{전문성:68,리더십:62,협업:70,성과:67,소통:69}, courses:[{name:'콘텐츠 제작',category:'커뮤니케이션',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':67,'2026-02':68,'2026-03':69,'2026-04':68,'2026-05':69,'2026-06':68} },
-      50:{ scores:{전문성:82,리더십:76,협업:78,성과:80,소통:74}, courses:[{name:'공약 개발',category:'정책연구',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':80,'2026-05':81,'2026-06':80} }
-    };
-
-    function seedForId(id){ return (id*9301+49297)%233280; }
-    function randFromSeed(id, min, max){ const s = seedForId(id); return Math.floor(min + (s/233280)*(max-min)); }
-
-    function getTalentFor(id){
-      if(TALENT[id]) return TALENT[id];
-      const scores = { 전문성: randFromSeed(id,55,90), 리더십: randFromSeed(id+1,50,88), 협업: randFromSeed(id+2,50,92), 성과: randFromSeed(id+3,45,90), 소통: randFromSeed(id+4,48,90) };
-      const courses = [ {name:'기본 직무교육', category:'정책연구', status: (randFromSeed(id,0,100)>60?'completed':'in-progress')}, {name:'커뮤니케이션 워크숍', category:'커뮤니케이션', status:(randFromSeed(id+5,0,100)>70?'planned':'in-progress')} ];
-      const career = { level: (randFromSeed(id,1,100)>90?'부문장': (randFromSeed(id,1,100)>75?'수석연구원': (randFromSeed(id,1,100)>55?'책임연구원': (randFromSeed(id,1,100)>35?'선임연구원':'연구원')))) };
-      const monthly = {};
-      for(let m=1;m<=6;m++){ const key = '2026-' + String(m).padStart(2,'0'); monthly[key] = Math.max(40, Math.min(98, Math.round((Object.values(scores).reduce((a,b)=>a+b,0)/5) + randFromSeed(id+m,-8,8)))); }
-      return { scores, courses, career, monthly };
-    }
-
-    // Note: TALENT is fully hardcoded above for all 50 employees.
-
-    function avgScore(scores){ const vals = Object.values(scores||{}); if(!vals.length) return 0; return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length); }
-    function gradeFrom(avg){ if(avg>=90) return 'S'; if(avg>=80) return 'A'; if(avg>=70) return 'B'; return 'C'; }
-
-    function drawBar(container, label, value){ const wrap = document.createElement('div'); wrap.style.marginBottom='8px'; const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; const lab = document.createElement('div'); lab.textContent=label; lab.style.color='#cfe6ff'; const val = document.createElement('div'); val.textContent=value+'점'; val.style.color='#9fb3d6'; row.appendChild(lab); row.appendChild(val); const barBg = document.createElement('div'); barBg.style.background='#061426'; barBg.style.height='10px'; barBg.style.borderRadius='6px'; barBg.style.marginTop='6px'; barBg.style.overflow='hidden'; const bar = document.createElement('div'); bar.style.height='100%'; bar.style.width=Math.max(4,Math.min(100,value))+'%'; bar.style.background = (value>=90? '#ffd166': (value>=80? '#76c893': '#4ea1ff')); barBg.appendChild(bar); wrap.appendChild(row); wrap.appendChild(barBg); container.appendChild(wrap); }
-
-    function renderTalentFor(empId){
-      const emp = employees.find(e=>e.id===empId); if(!emp) return;
-      const data = Object.assign({}, getTalentFor(empId)); if(!data.monthly){ // ensure monthly exists
-        data.monthly = {};
-        for(let m=1;m<=6;m++){ data.monthly['2026-'+String(m).padStart(2,'0')] = avgScore(data.scores) + (m-3)*2; }
-      }
-
-      const scoresCard = document.getElementById('scoresCard'); scoresCard.innerHTML='';
-      const title = document.createElement('div'); title.style.fontWeight='700'; title.textContent = emp.name + ' • 역량 점수'; scoresCard.appendChild(title);
-      const avg = avgScore(data.scores); const grade = gradeFrom(avg);
-      const gradeRow = document.createElement('div'); gradeRow.style.marginTop='6px'; gradeRow.innerHTML = '<div style="font-size:13px;color:#9fb3d6">평균: <strong style="color:#cfe6ff">'+avg+'점</strong> · 등급: <strong style="color:#ffd166">'+grade+'</strong></div>';
-      scoresCard.appendChild(gradeRow);
-      const list = document.createElement('div'); list.style.marginTop='8px'; for(const k of ['전문성','리더십','협업','성과','소통']){ drawBar(list, k, data.scores[k] || 0); }
-      scoresCard.appendChild(list);
-
-      const coursesCard = document.getElementById('coursesCard'); coursesCard.innerHTML=''; const t1=document.createElement('div'); t1.style.fontWeight='700'; t1.textContent='교육 과정 & 수료 현황'; coursesCard.appendChild(t1);
-      const tbl = document.createElement('div'); tbl.style.marginTop='8px'; (data.courses||[]).forEach(c=>{ const row=document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.padding='6px 0'; row.style.borderBottom='1px solid rgba(255,255,255,0.02)'; const left=document.createElement('div'); left.textContent=c.name + ' · ' + c.category; left.style.color='#cfe6ff'; const right=document.createElement('div'); right.textContent = (c.status==='completed'? '수료':'진행중' || '예정'); right.style.color = (c.status==='completed'? '#76c893': (c.status==='in-progress'? '#ffd166':'#9fb3d6')); row.appendChild(left); row.appendChild(right); tbl.appendChild(row); });
-      const completed = (data.courses||[]).filter(x=>x.status==='completed').length; const total = (data.courses||[]).length; const rate = total? Math.round((completed/total)*100):0;
-      const rateLine = document.createElement('div'); rateLine.style.marginTop='8px'; rateLine.innerHTML = '<strong>수료율:</strong> '+rate+'% ('+completed+'/'+total+')'; coursesCard.appendChild(tbl); coursesCard.appendChild(rateLine);
-
-      const careerCard = document.getElementById('careerCard'); careerCard.innerHTML=''; const ctitle=document.createElement('div'); ctitle.style.fontWeight='700'; ctitle.textContent='승진 & 커리어 트랙'; careerCard.appendChild(ctitle);
-      const path = ['연구원','선임연구원','책임연구원','수석연구원','부문장']; const curr = data.career && data.career.level? data.career.level : '연구원'; const idx = path.indexOf(curr) >=0 ? path.indexOf(curr) : 0; const next = idx<path.length-1? path[idx+1] : '(최고등급)';
-      const curLine = document.createElement('div'); curLine.style.marginTop='8px'; curLine.innerHTML = '<div style="color:#cfe6ff">현재 레벨: '+curr+'</div><div style="color:#9fb3d6">다음 승진: '+next+'</div>';
-      careerCard.appendChild(curLine);
-      // simple promotion requirement: avg >= 80 for next
-      const required = 80; const monthsTo = Math.max(0, Math.ceil((required - avg)/2)); const est = new Date(); est.setMonth(est.getMonth()+monthsTo); const estStr = est.getFullYear()+'-'+String(est.getMonth()+1).padStart(2,'0');
-      const reqLine = document.createElement('div'); reqLine.style.marginTop='8px'; reqLine.innerHTML = '<div style="color:#9fb3d6">다음 승진 요건: 평균점수 ≥ '+required+'점</div><div style="color:#cfe6ff">예상 승진일: '+estStr+'</div>';
-      careerCard.appendChild(reqLine);
-
-      // projects card: link to projects and show contribution
-      const projectsCard = document.getElementById('projectsCard'); projectsCard.innerHTML=''; const ptitle=document.createElement('div'); ptitle.style.fontWeight='700'; ptitle.textContent='프로젝트 성과 기반 평가'; projectsCard.appendChild(ptitle);
-      const plist = document.createElement('div'); plist.style.marginTop='8px'; const empProjects = projects.filter(p=> (p.assigned_employee_ids||[]).includes(empId)); if(empProjects.length===0){ const none=document.createElement('div'); none.style.color='#9fb3d6'; none.textContent='할당된 프로젝트가 없습니다.'; plist.appendChild(none); } else { empProjects.forEach(p=>{ const row=document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.padding='8px 0'; row.style.borderBottom='1px solid rgba(255,255,255,0.02)'; const left=document.createElement('div'); left.innerHTML = '<div style="font-weight:700">'+p.name+'</div><div style="font-size:12px;color:#9fb3d6">진행 '+p.progress+'% • '+p.client+'</div>'; const contrib = Math.round((avg + p.progress)/2); const right=document.createElement('div'); right.style.textAlign='right'; right.innerHTML = '<div style="font-weight:700;color:#ffd166">기여 '+contrib+'점</div><div style="font-size:12px;color:#9fb3d6">상세 보기</div>'; row.appendChild(left); row.appendChild(right); plist.appendChild(row); }); }
-      projectsCard.appendChild(plist);
-
-      // draw trend chart
-      const canvas = document.getElementById('trendChart'); const ctx = canvas.getContext('2d'); const months = Object.keys(data.monthly||{}).slice(-6); const vals = months.map(m=>data.monthly[m]); drawTrendChart(ctx, months, vals);
-    }
-
-    function renderAllTalent(){
-      const list = document.getElementById('talentList'); list.innerHTML='';
-      employees.forEach(emp=>{
-        const data = getTalentFor(emp.id);
-        const card = document.createElement('div'); card.style.background='#061526'; card.style.padding='10px'; card.style.borderRadius='8px'; card.style.marginBottom='8px';
-        const h = document.createElement('div'); h.style.display='flex'; h.style.justifyContent='space-between'; h.style.alignItems='center'; h.innerHTML = '<div style="font-weight:700">'+emp.name+'</div><div style="color:#9fb3d6;font-size:12px">'+(emp.title||'')+'</div>';
-        card.appendChild(h);
-        const avg = avgScore(data.scores); const grade = gradeFrom(avg);
-        const meta = document.createElement('div'); meta.style.marginTop='6px'; meta.innerHTML = '<div style="color:#cfe6ff">평균 '+avg+'점 · 등급 <strong style="color:#ffd166">'+grade+'</strong></div>';
-        card.appendChild(meta);
-        const bars = document.createElement('div'); bars.style.display='flex'; bars.style.gap='6px'; bars.style.marginTop='8px'; bars.style.flexWrap='wrap';
-        ['전문성','리더십','협업','성과','소통'].forEach(k=>{ const small=document.createElement('div'); small.style.width='18%'; small.style.minWidth='80px'; small.style.fontSize='11px'; small.style.color='#cfe6ff'; small.innerHTML = '<div style="margin-bottom:6px">'+k+'</div>'; const val = data.scores[k] || 0; const bg=document.createElement('div'); bg.style.background='#041624'; bg.style.height='8px'; bg.style.borderRadius='4px'; const fg=document.createElement('div'); fg.style.width=Math.max(4,Math.min(100,val))+'%'; fg.style.height='100%'; fg.style.background=(val>=90? '#ffd166': (val>=80? '#76c893':'#4ea1ff')); bg.appendChild(fg); small.appendChild(bg); bars.appendChild(small); });
-        card.appendChild(bars);
-        const courses = document.createElement('div'); courses.style.marginTop='8px'; const completed = (data.courses||[]).filter(x=>x.status==='completed').length; const total = (data.courses||[]).length; courses.innerHTML = '<div style="color:#9fb3d6;font-size:12px">수료율: '+(total?Math.round((completed/total)*100):0)+'% ('+completed+'/'+total+')</div>';
-        card.appendChild(courses);
-        const career = document.createElement('div'); career.style.marginTop='6px'; career.innerHTML = '<div style="color:#cfe6ff;font-size:12px">레벨: '+(data.career&&data.career.level?data.career.level:'연구원')+'</div>';
-        card.appendChild(career);
-        // small project contributions
-        const empproj = projects.filter(p=> (p.assigned_employee_ids||[]).includes(emp.id));
-        const projdiv = document.createElement('div'); projdiv.style.marginTop='6px'; projdiv.style.fontSize='12px'; projdiv.style.color='#9fb3d6'; projdiv.textContent = '프로젝트: ' + (empproj.length? empproj.map(p=>p.name).slice(0,2).join(', '): '없음');
-        card.appendChild(projdiv);
-        list.appendChild(card);
-      });
-    }
-
-    function drawTrendChart(ctx, labels, values){ const w = ctx.canvas.width; const h = ctx.canvas.height; ctx.clearRect(0,0,w,h); const max = Math.max(100, ...values); const pad = 20; const barW = (w - pad*2) / Math.max(1, values.length); values.forEach((v,i)=>{ const x = pad + i*barW + 6; const barH = Math.round((v/max) * (h - pad)); ctx.fillStyle = '#4ea1ff'; ctx.fillRect(x, h - pad - barH, barW - 12, barH); ctx.fillStyle = '#cfe6ff'; ctx.font='11px sans-serif'; ctx.fillText(String(v), x, h - pad - barH - 6); ctx.fillStyle = '#9fb3d6'; ctx.fillText(labels[i].slice(5), x, h - 4); }); }
-
-    // populate selector and wire tab
-    const talentSelect = document.getElementById('talentSelect'); employees.forEach(e=>{ const opt=document.createElement('option'); opt.value=e.id; opt.textContent = e.name + ' • ' + (e.title||''); talentSelect.appendChild(opt); });
-    const tabTalent = document.getElementById('tabTalent'); tabTalent.addEventListener('click', ()=>{ window.open('talent.html','_blank'); });
-    talentSelect.addEventListener('change', ()=> renderTalentFor(Number(talentSelect.value)));
-
-    setActiveFilter('전체');
-  })();
+  // initial render
+  renderEmployees();
   </script>
-
 </body>
 </html>
