@@ -21,8 +21,8 @@ API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 GETUPDATES_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
 
 # Anthropic / Claude
-ANTHROPIC_API_KEY = "sk-ant-api03-RmF...7AAA"
-ANTHROPIC_URL = "https://api.anthropic.com/v1/complete"
+ANTHROPIC_API_KEY = "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"
+ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
 
 
@@ -97,19 +97,23 @@ def generate_business_ideas_via_claude():
     )
     body = {
         "model": ANTHROPIC_MODEL,
-        "prompt": prompt,
-        "max_tokens": 300,
-        "temperature": 0.7
+        "max_tokens": 1024,
+        "messages": [{"role": "user", "content": prompt}]
     }
-    headers = {"x-api-key": ANTHROPIC_API_KEY, "Content-Type": "application/json"}
+    headers = {"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"}
     try:
-        resp = requests.post(ANTHROPIC_URL, json=body, headers=headers, timeout=10)
+        resp = requests.post(ANTHROPIC_URL, json=body, headers=headers, timeout=15)
         if resp.ok:
             data = resp.json()
-            # naive extraction
-            text = data.get('completion') or data.get('text') or data.get('response') or ''
-            if not text and isinstance(data.get('choices'), list):
-                text = data['choices'][0].get('text','')
+            # expected response: data["content"][0]["text"]
+            text = ''
+            try:
+                text = data.get('content', [])[0].get('text','') if isinstance(data.get('content'), list) else ''
+            except Exception:
+                text = ''
+            if not text:
+                # fallback to other fields
+                text = data.get('completion') or data.get('response') or ''
             lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
             return lines[:3] if lines else [IDEAS['연구'], IDEAS['과제수행'], IDEAS['정치컨설팅']]
         else:
