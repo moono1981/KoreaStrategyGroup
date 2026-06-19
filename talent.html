@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>인재개발 — Korea Strategy Group</title>
+  <style>
+    :root{--bg:#0b1220;--card:#071428;--muted:#9fb3d6;--text:#e6eef8;--accent:#15405a;--gold:#ffd166}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1200px;margin:28px auto;padding:20px;background:linear-gradient(180deg,var(--card),#061526);border-radius:10px;box-shadow:0 6px 30px rgba(0,0,0,.6)}
+    h1{margin:0 0 14px 0;font-size:20px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{position:sticky;top:0;background:#061426;padding:10px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:left;color:var(--muted)}
+    tbody tr{border-bottom:1px solid rgba(255,255,255,0.03)}
+    td{padding:10px;vertical-align:middle}
+    .name{font-weight:700;color:var(--text)}
+    .dept{color:var(--muted);font-size:12px}
+    .grade{font-weight:700;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);display:inline-block}
+    .grade.S{background:linear-gradient(90deg,#3a2,#ffd166);color:#222}
+    .grade.A{background:#15405a;color:var(--text)}
+    .grade.B{background:#123245;color:var(--text)}
+    .grade.C{background:#2b3b4b;color:var(--muted)}
+    .barWrap{height:10px;background:#041424;border-radius:6px;overflow:hidden;width:120px}
+    .bar{height:100%;background:#4ea1ff}
+    .muted{color:var(--muted)}
+    .small{font-size:12px;color:var(--muted)}
+    @media (max-width:980px){ .wrap{padding:12px} table{font-size:12px} .barWrap{width:90px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>인재개발 — 직원 역량 요약 (50명)</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>이름</th>
+          <th>부서</th>
+          <th>등급</th>
+          <th>전문성</th>
+          <th>리더십</th>
+          <th>협업</th>
+          <th>교육수료율%</th>
+          <th>승진예정</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="name">정도현</td><td class="dept">경영진</td><td><span class="grade S">S</span></td><td>95</td><td>92</td><td>85</td><td class="small">100%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">강민수</td><td class="dept">연구부문</td><td><span class="grade A">A</span></td><td>88</td><td>80</td><td>82</td><td class="small">33%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">이서연</td><td class="dept">연구부문</td><td><span class="grade A">A</span></td><td>90</td><td>78</td><td>80</td><td class="small">100%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">박준영</td><td class="dept">연구부문</td><td><span class="grade B">B</span></td><td>75</td><td>70</td><td>78</td><td class="small">50%</td><td class="small">2026-09</td></tr>
+        <tr><td class="name">최유진</td><td class="dept">연구부문</td><td><span class="grade B">B</span></td><td>86</td><td>72</td><td>74</td><td class="small">50%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">김도윤</td><td class="dept">연구부문</td><td><span class="grade B">B</span></td><td>72</td><td>68</td><td>80</td><td class="small">50%</td><td class="small">2026-10</td></tr>
+        <tr><td class="name">한소희</td><td class="dept">연구부문</td><td><span class="grade B">B</span></td><td>78</td><td>66</td><td>82</td><td class="small">50%</td><td class="small">2026-10</td></tr>
+        <tr><td class="name">오태경</td><td class="dept">연구부문</td><td><span class="grade B">B</span></td><td>80</td><td>75</td><td>79</td><td class="small">50%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">신예린</td><td class="dept">연구부문</td><td><span class="grade C">C</span></td><td>70</td><td>60</td><td>72</td><td class="small">100%</td><td class="small">2027-01</td></tr>
+        <tr><td class="name">장현우</td><td class="dept">연구부문</td><td><span class="grade C">C</span></td><td>74</td><td>62</td><td>70</td><td class="small">50%</td><td class="small">2026-12</td></tr>
+        <tr><td class="name">윤채원</td><td class="dept">연구부문</td><td><span class="grade C">C</span></td><td>69</td><td>60</td><td>68</td><td class="small">100%</td><td class="small">2027-01</td></tr>
+        <tr><td class="name">배성민</td><td class="dept">연구부문</td><td><span class="grade B">B</span></td><td>82</td><td>74</td><td>76</td><td class="small">50%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">임하늘</td><td class="dept">연구부문</td><td><span class="grade C">C</span></td><td>68</td><td>58</td><td>70</td><td class="small">50%</td><td class="small">2027-02</td></tr>
+        <tr><td class="name">권지호</td><td class="dept">연구부문</td><td><span class="grade A">A</span></td><td>88</td><td>76</td><td>80</td><td class="small">100%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">송다은</td><td class="dept">연구부문</td><td><span class="grade C">C</span></td><td>66</td><td>58</td><td>64</td><td class="small">100%</td><td class="small">2027-03</td></tr>
+        <tr><td class="name">조현석</td><td class="dept">연구부문</td><td><span class="grade A">A</span></td><td>90</td><td>82</td><td>80</td><td class="small">100%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">문가영</td><td class="dept">연구부문</td><td><span class="grade B">B</span></td><td>78</td><td>72</td><td>76</td><td class="small">100%</td><td class="small">2026-09</td></tr>
+        <tr><td class="name">노준혁</td><td class="dept">연구부문</td><td><span class="grade B">B</span></td><td>80</td><td>74</td><td>75</td><td class="small">50%</td><td class="small">2026-09</td></tr>
+        <tr><td class="name">황수아</td><td class="dept">연구부문</td><td><span class="grade C">C</span></td><td>72</td><td>66</td><td>70</td><td class="small">100%</td><td class="small">2026-12</td></tr>
+
+        <tr><td class="name">윤서진</td><td class="dept">과제수행부문</td><td><span class="grade A">A</span></td><td>86</td><td>88</td><td>84</td><td class="small">50%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">이강훈</td><td class="dept">과제수행부문</td><td><span class="grade A">A</span></td><td>84</td><td>80</td><td>83</td><td class="small">100%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">정유나</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>78</td><td>72</td><td>76</td><td class="small">100%</td><td class="small">2026-09</td></tr>
+        <tr><td class="name">김태현</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>80</td><td>75</td><td>78</td><td class="small">50%</td><td class="small">2026-07</td></tr>
+        <tr><td class="name">박서윤</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>76</td><td>70</td><td>75</td><td class="small">100%</td><td class="small">2026-10</td></tr>
+        <tr><td class="name">최동민</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>82</td><td>74</td><td>80</td><td class="small">50%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">한예슬</td><td class="dept">과제수행부문</td><td><span class="grade C">C</span></td><td>70</td><td>66</td><td>72</td><td class="small">50%</td><td class="small">2026-12</td></tr>
+        <tr><td class="name">오승준</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>79</td><td>75</td><td>80</td><td class="small">100%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">신지아</td><td class="dept">과제수행부문</td><td><span class="grade C">C</span></td><td>68</td><td>64</td><td>70</td><td class="small">100%</td><td class="small">2027-01</td></tr>
+        <tr><td class="name">장민재</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>83</td><td>76</td><td>78</td><td class="small">100%</td><td class="small">2026-07</td></tr>
+        <tr><td class="name">윤도경</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>75</td><td>70</td><td>76</td><td class="small">100%</td><td class="small">2026-10</td></tr>
+        <tr><td class="name">임수빈</td><td class="dept">과제수행부문</td><td><span class="grade C">C</span></td><td>69</td><td>62</td><td>70</td><td class="small">100%</td><td class="small">2027-01</td></tr>
+        <tr><td class="name">권상우</td><td class="dept">과제수행부문</td><td><span class="grade A">A</span></td><td>88</td><td>82</td><td>84</td><td class="small">100%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">송재희</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>76</td><td>68</td><td>74</td><td class="small">0%</td><td class="small">2026-10</td></tr>
+        <tr><td class="name">조은별</td><td class="dept">과제수행부문</td><td><span class="grade C">C</span></td><td>67</td><td>60</td><td>69</td><td class="small">100%</td><td class="small">2027-02</td></tr>
+        <tr><td class="name">문태웅</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>81</td><td>74</td><td>76</td><td class="small">100%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">황민서</td><td class="dept">과제수행부문</td><td><span class="grade B">B</span></td><td>77</td><td>72</td><td>75</td><td class="small">100%</td><td class="small">2026-09</td></tr>
+
+        <tr><td class="name">한지욱</td><td class="dept">정치컨설팅부문</td><td><span class="grade A">A</span></td><td>89</td><td>90</td><td>83</td><td class="small">50%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">이재원</td><td class="dept">정치컨설팅부문</td><td><span class="grade A">A</span></td><td>84</td><td>78</td><td>82</td><td class="small">100%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">정하린</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>78</td><td>74</td><td>76</td><td class="small">100%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">김선우</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>82</td><td>76</td><td>80</td><td class="small">50%</td><td class="small">2026-07</td></tr>
+        <tr><td class="name">박지민</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>79</td><td>72</td><td>78</td><td class="small">100%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">최서아</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>80</td><td>74</td><td>77</td><td class="small">100%</td><td class="small">2026-08</td></tr>
+        <tr><td class="name">한도훈</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>72</td><td>66</td><td>74</td><td class="small">100%</td><td class="small">2026-11</td></tr>
+        <tr><td class="name">오나경</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>83</td><td>78</td><td>80</td><td class="small">100%</td><td class="small">2026-07</td></tr>
+        <tr><td class="name">신우성</td><td class="dept">정치컨설팅부문</td><td><span class="grade A">A</span></td><td>88</td><td>84</td><td>82</td><td class="small">100%</td><td class="small">2026-06</td></tr>
+        <tr><td class="name">장유빈</td><td class="dept">정치컨설팅부문</td><td><span class="grade C">C</span></td><td>70</td><td>64</td><td>72</td><td class="small">0%</td><td class="small">2026-12</td></tr>
+        <tr><td class="name">윤소율</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>81</td><td>75</td><td>80</td><td class="small">100%</td><td class="small">2026-07</td></tr>
+        <tr><td class="name">임건우</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>84</td><td>78</td><td>79</td><td class="small">100%</td><td class="small">2026-07</td></tr>
+        <tr><td class="name">권나윤</td><td class="dept">정치컨설팅부문</td><td><span class="grade C">C</span></td><td>68</td><td>62</td><td>70</td><td class="small">100%</td><td class="small">2027-01</td></tr>
+        <tr><td class="name">조민혁</td><td class="dept">정치컨설팅부문</td><td><span class="grade B">B</span></td><td>82</td><td>76</td><td>78</td><td class="small">100%</td><td class="small">2026-07</td></tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

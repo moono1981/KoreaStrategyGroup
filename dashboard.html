@@ -19,6 +19,7 @@
           <button id="tabCards" style="padding:8px 10px;border-radius:8px;background:#15405a;border:1px solid #123245;color:#e6eef8;cursor:pointer">직원 카드</button>
           <button id="tabOrg" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">조직도</button>
           <button id="tabProjects" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">프로젝트</button>
+          <button id="tabTalent" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">인재개발</button>
         </div>
         <button id="addEmployee" style="margin-left:12px;padding:8px 10px;border-radius:8px;background:#1b6f3a;border:1px solid #174f2b;color:#fff;cursor:pointer">직원 추가</button>
       </div>
@@ -34,6 +35,29 @@
         <div id="cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
         <div id="orgView" style="display:none;padding:6px;border-radius:8px;background:#071428;color:#e6eef8"></div>
         <div id="projectsView" style="display:none;padding:6px;border-radius:8px;background:#071428;color:#e6eef8"></div>
+        <div id="talentView" style="display:none;padding:12px;border-radius:8px;background:#071428;color:#e6eef8">
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+            <div style="flex:1">
+              <select id="talentSelect" style="width:100%;padding:8px;border-radius:8px;background:#061226;border:1px solid #123245;color:#e6eef8"></select>
+            </div>
+            <div style="min-width:140px;text-align:right;color:#9fb3d6;font-size:13px">인재개발 대시보드</div>
+          </div>
+          <div id="talentList" style="max-height:520px;overflow:auto;padding-top:8px;display:block"></div>
+          <div id="talentContent" style="display:flex;gap:12px">
+            <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+              <div id="scoresCard" style="padding:12px;background:#061526;border-radius:8px"></div>
+              <div id="coursesCard" style="padding:12px;background:#061526;border-radius:8px"></div>
+              <div id="careerCard" style="padding:12px;background:#061526;border-radius:8px"></div>
+            </div>
+            <div style="width:320px;display:flex;flex-direction:column;gap:12px">
+              <div id="projectsCard" style="padding:12px;background:#061526;border-radius:8px;min-height:180px;overflow:auto"></div>
+              <div id="trendCard" style="padding:12px;background:#061526;border-radius:8px;min-height:160px">
+                <div style="font-weight:700;margin-bottom:8px">월간 성과 추세</div>
+                <canvas id="trendChart" width="300" height="120" style="width:100%;height:120px;background:transparent"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div id="noResults" style="display:none;color:#9fb3d6;padding:18px;background:#071428;border-radius:8px">검색 결과가 없습니다.</div>
       </section>
@@ -357,9 +381,9 @@
     }
 
     // tabs
-    tabCards.addEventListener('click', ()=>{ viewMode='cards'; cardsEl.parentElement.style.display='block'; orgEl.style.display='none'; projectsEl.style.display='none'; tabCards.style.background='#15405a'; tabOrg.style.background='#071428'; tabProjects.style.background='#071428'; render(); });
-    tabOrg.addEventListener('click', ()=>{ viewMode='org'; cardsEl.parentElement.style.display='none'; orgEl.style.display='block'; projectsEl.style.display='none'; tabOrg.style.background='#15405a'; tabCards.style.background='#071428'; tabProjects.style.background='#071428'; renderOrg(); });
-    tabProjects.addEventListener('click', ()=>{ viewMode='projects'; cardsEl.parentElement.style.display='none'; orgEl.style.display='none'; projectsEl.style.display='block'; tabProjects.style.background='#15405a'; tabCards.style.background='#071428'; tabOrg.style.background='#071428'; renderProjects(); });
+    tabCards.addEventListener('click', ()=>{ viewMode='cards'; cardsEl.parentElement.style.display='block'; orgEl.style.display='none'; projectsEl.style.display='none'; document.getElementById('talentView').style.display='none'; tabCards.style.background='#15405a'; tabOrg.style.background='#071428'; tabProjects.style.background='#071428'; render(); });
+    tabOrg.addEventListener('click', ()=>{ viewMode='org'; cardsEl.parentElement.style.display='none'; orgEl.style.display='block'; projectsEl.style.display='none'; document.getElementById('talentView').style.display='none'; tabOrg.style.background='#15405a'; tabCards.style.background='#071428'; tabProjects.style.background='#071428'; renderOrg(); });
+    tabProjects.addEventListener('click', ()=>{ viewMode='projects'; cardsEl.parentElement.style.display='none'; orgEl.style.display='none'; projectsEl.style.display='block'; document.getElementById('talentView').style.display='none'; tabProjects.style.background='#15405a'; tabCards.style.background='#071428'; tabOrg.style.background='#071428'; renderProjects(); });
 
     // add employee
     addEmployeeBtn.addEventListener('click', ()=> showEditForm(null));
@@ -404,6 +428,151 @@
     }
 
     // initial filter state
+    // --- Talent (인재개발) data and UI ---
+    // Full hardcoded TALENT data for employees 1..50 (역량, 교육, 커리어, 월별 성과)
+    const TALENT = {
+      1: { scores:{전문성:95,리더십:92,협업:85,성과:93,소통:88}, courses:[{name:'리더십 고급',category:'커뮤니케이션',status:'completed'},{name:'법률/윤리 워크숍',category:'법률/윤리',status:'completed'}], career:{level:'부문장'}, monthly:{'2026-01':94,'2026-02':92,'2026-03':93,'2026-04':95,'2026-05':94,'2026-06':95} },
+      2: { scores:{전문성:88,리더십:80,협업:82,성과:85,소통:79}, courses:[{name:'AI 활용 기본',category:'AI활용',status:'completed'},{name:'정책연구 심화',category:'정책연구',status:'in-progress'},{name:'프로젝트관리 기초',category:'프로젝트관리',status:'planned'}], career:{level:'연구부문장(상무)'}, monthly:{'2026-01':86,'2026-02':84,'2026-03':85,'2026-04':87,'2026-05':86,'2026-06':85} },
+      3: { scores:{전문성:90,리더십:78,협업:80,성과:88,소통:82}, courses:[{name:'사회조사방법론 고급',category:'정책연구',status:'completed'},{name:'커뮤니케이션 스킬',category:'커뮤니케이션',status:'completed'}], career:{level:'수석연구위원'}, monthly:{'2026-01':88,'2026-02':89,'2026-03':87,'2026-04':90,'2026-05':88,'2026-06':89} },
+      4: { scores:{전문성:75,리더십:70,협업:78,성과:76,소통:73}, courses:[{name:'여론조사 설계',category:'정책연구',status:'completed'},{name:'데이터 클리닝',category:'AI활용',status:'in-progress'}], career:{level:'책임연구원'}, monthly:{'2026-01':74,'2026-02':75,'2026-03':76,'2026-04':78,'2026-05':77,'2026-06':76} },
+      5: { scores:{전문성:86,리더십:72,협업:74,성과:80,소통:75}, courses:[{name:'계량분석 심화',category:'정책연구',status:'completed'},{name:'윤리교육',category:'법률/윤리',status:'planned'}], career:{level:'책임연구원'}, monthly:{'2026-01':82,'2026-02':83,'2026-03':84,'2026-04':85,'2026-05':84,'2026-06':83} },
+      6: { scores:{전문성:72,리더십:68,협업:80,성과:75,소통:70}, courses:[{name:'정성연구 고급',category:'정책연구',status:'completed'},{name:'커뮤니케이션 워크숍',category:'커뮤니케이션',status:'in-progress'}], career:{level:'선임연구원'}, monthly:{'2026-01':74,'2026-02':72,'2026-03':73,'2026-04':75,'2026-05':76,'2026-06':74} },
+      7: { scores:{전문성:78,리더십:66,협업:82,성과:70,소통:68}, courses:[{name:'데이터 전처리',category:'AI활용',status:'completed'},{name:'품질관리',category:'프로젝트관리',status:'planned'}], career:{level:'선임연구원'}, monthly:{'2026-01':72,'2026-02':74,'2026-03':75,'2026-04':76,'2026-05':75,'2026-06':74} },
+      8: { scores:{전문성:80,리더십:75,협업:79,성과:82,소통:70}, courses:[{name:'정책영향평가',category:'정책연구',status:'completed'},{name:'프로젝트리더십',category:'프로젝트관리',status:'in-progress'}], career:{level:'선임연구원'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':82,'2026-05':82,'2026-06':81} },
+      9: { scores:{전문성:70,리더십:60,협업:72,성과:68,소통:66}, courses:[{name:'R/Python 워크숍',category:'AI활용',status:'completed'},{name:'기초통계',category:'정책연구',status:'completed'}], career:{level:'연구원'}, monthly:{'2026-01':68,'2026-02':69,'2026-03':70,'2026-04':71,'2026-05':72,'2026-06':71} },
+      10:{ scores:{전문성:74,리더십:62,협업:70,성과:72,소통:69}, courses:[{name:'데이터 시각화',category:'AI활용',status:'completed'},{name:'스토리텔링',category:'커뮤니케이션',status:'in-progress'}], career:{level:'연구원'}, monthly:{'2026-01':71,'2026-02':72,'2026-03':73,'2026-04':74,'2026-05':73,'2026-06':74} },
+      11:{ scores:{전문성:69,리더십:60,협업:68,성과:66,소통:67}, courses:[{name:'설문 설계',category:'정책연구',status:'completed'},{name:'윤리교육',category:'법률/윤리',status:'completed'}], career:{level:'연구원'}, monthly:{'2026-01':66,'2026-02':67,'2026-03':68,'2026-04':69,'2026-05':68,'2026-06':69} },
+      12:{ scores:{전문성:82,리더십:74,협업:76,성과:80,소통:73}, courses:[{name:'거시경제 분석',category:'정책연구',status:'completed'},{name:'프레젠테이션',category:'커뮤니케이션',status:'in-progress'}], career:{level:'선임연구원'}, monthly:{'2026-01':80,'2026-02':81,'2026-03':82,'2026-04':83,'2026-05':82,'2026-06':81} },
+      13:{ scores:{전문성:68,리더십:58,협업:70,성과:65,소통:66}, courses:[{name:'현장조사 실습',category:'정책연구',status:'completed'},{name:'커뮤니케이션 기초',category:'커뮤니케이션',status:'planned'}], career:{level:'연구원'}, monthly:{'2026-01':65,'2026-02':66,'2026-03':67,'2026-04':68,'2026-05':67,'2026-06':68} },
+      14:{ scores:{전문성:88,리더십:76,협업:80,성과:85,소통:72}, courses:[{name:'예측모델링',category:'AI활용',status:'completed'},{name:'통계모델 심화',category:'정책연구',status:'completed'}], career:{level:'선임연구원'}, monthly:{'2026-01':84,'2026-02':85,'2026-03':86,'2026-04':87,'2026-05':86,'2026-06':85} },
+      15:{ scores:{전문성:66,리더십:58,협업:64,성과:62,소통:63}, courses:[{name:'문헌조사 기법',category:'정책연구',status:'completed'}], career:{level:'연구원'}, monthly:{'2026-01':63,'2026-02':64,'2026-03':65,'2026-04':64,'2026-05':65,'2026-06':64} },
+      16:{ scores:{전문성:90,리더십:82,협업:80,성과:88,소통:78}, courses:[{name:'연구방법론 자문',category:'정책연구',status:'completed'},{name:'윤리교육',category:'법률/윤리',status:'completed'}], career:{level:'수석연구위원'}, monthly:{'2026-01':88,'2026-02':89,'2026-03':90,'2026-04':90,'2026-05':89,'2026-06':90} },
+      17:{ scores:{전문성:78,리더십:72,협업:76,성과:79,소통:71}, courses:[{name:'프로젝트 일정관리',category:'프로젝트관리',status:'completed'}], career:{level:'책임연구원'}, monthly:{'2026-01':76,'2026-02':77,'2026-03':78,'2026-04':79,'2026-05':78,'2026-06':77} },
+      18:{ scores:{전문성:80,리더십:74,협업:75,성과:78,소통:70}, courses:[{name:'재정·예산 분석',category:'정책연구',status:'completed'},{name:'리스크 관리',category:'프로젝트관리',status:'in-progress'}], career:{level:'책임연구원'}, monthly:{'2026-01':77,'2026-02':78,'2026-03':78,'2026-04':79,'2026-05':78,'2026-06':78} },
+      19:{ scores:{전문성:72,리더십:66,협업:70,성과:71,소통:68}, courses:[{name:'교육정책 심화',category:'정책연구',status:'completed'}], career:{level:'연구원'}, monthly:{'2026-01':70,'2026-02':71,'2026-03':72,'2026-04':73,'2026-05':72,'2026-06':73} },
+      20:{ scores:{전문성:86,리더십:88,협업:84,성과:87,소통:80}, courses:[{name:'PMO 실무',category:'프로젝트관리',status:'completed'},{name:'법률/윤리 기본',category:'법률/윤리',status:'planned'}], career:{level:'과제수행부문장(상무)'}, monthly:{'2026-01':85,'2026-02':86,'2026-03':87,'2026-04':86,'2026-05':87,'2026-06':86} },
+      21:{ scores:{전문성:84,리더십:80,협업:83,성과:82,소통:78}, courses:[{name:'공공사업 관리',category:'프로젝트관리',status:'completed'}], career:{level:'수석컨설턴트'}, monthly:{'2026-01':82,'2026-02':83,'2026-03':84,'2026-04':83,'2026-05':84,'2026-06':83} },
+      22:{ scores:{전문성:78,리더십:72,협업:76,성과:77,소통:74}, courses:[{name:'제안서 작성',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':76,'2026-02':77,'2026-03':77,'2026-04':78,'2026-05':77,'2026-06':78} },
+      23:{ scores:{전문성:80,리더십:75,협업:78,성과:79,소통:81}, courses:[{name:'고객 커뮤니케이션',category:'커뮤니케이션',status:'completed'},{name:'품질관리',category:'프로젝트관리',status:'in-progress'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':78,'2026-02':79,'2026-03':80,'2026-04':81,'2026-05':80,'2026-06':79} },
+      24:{ scores:{전문성:76,리더십:70,협업:75,성과:74,소통:72}, courses:[{name:'KPI 설계',category:'프로젝트관리',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':74,'2026-02':75,'2026-03':76,'2026-04':76,'2026-05':75,'2026-06':76} },
+      25:{ scores:{전문성:82,리더십:74,협업:80,성과:78,소통:73}, courses:[{name:'신규사업 기획',category:'프로젝트관리',status:'in-progress'},{name:'발표 스킬',category:'커뮤니케이션',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':82,'2026-05':81,'2026-06':80} },
+      26:{ scores:{전문성:70,리더십:66,협업:72,성과:69,소통:68}, courses:[{name:'프로젝트 운영',category:'프로젝트관리',status:'completed'},{name:'타임매니지먼트',category:'커뮤니케이션',status:'planned'}], career:{level:'컨설턴트'}, monthly:{'2026-01':68,'2026-02':69,'2026-03':70,'2026-04':71,'2026-05':70,'2026-06':69} },
+      27:{ scores:{전문성:79,리더십:75,협업:80,성과:78,소통:74}, courses:[{name:'프로세스 표준화',category:'프로젝트관리',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':77,'2026-02':78,'2026-03':79,'2026-04':79,'2026-05':78,'2026-06':79} },
+      28:{ scores:{전문성:68,리더십:64,협업:70,성과:67,소통:69}, courses:[{name:'퍼실리테이션',category:'커뮤니케이션',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':66,'2026-02':67,'2026-03':68,'2026-04':69,'2026-05':68,'2026-06':69} },
+      29:{ scores:{전문성:83,리더십:76,협업:78,성과:81,소통:72}, courses:[{name:'예산·원가관리',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':80,'2026-02':81,'2026-03':81,'2026-04':82,'2026-05':81,'2026-06':82} },
+      30:{ scores:{전문성:75,리더십:70,협업:76,성과:74,소통:73}, courses:[{name:'협업조정',category:'프로젝트관리',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':74,'2026-02':75,'2026-03':76,'2026-04':76,'2026-05':75,'2026-06':76} },
+      31:{ scores:{전문성:69,리더십:62,협업:70,성과:68,소통:66}, courses:[{name:'문서관리',category:'정책연구',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':67,'2026-02':68,'2026-03':69,'2026-04':69,'2026-05':68,'2026-06':69} },
+      32:{ scores:{전문성:88,리더십:82,협업:84,성과:86,소통:78}, courses:[{name:'대형용역 총괄',category:'프로젝트관리',status:'completed'}], career:{level:'수석컨설턴트'}, monthly:{'2026-01':85,'2026-02':86,'2026-03':87,'2026-04':86,'2026-05':87,'2026-06':86} },
+      33:{ scores:{전문성:76,리더십:68,협업:74,성과:75,소통:71}, courses:[{name:'서비스 기획',category:'프로젝트관리',status:'in-progress'}], career:{level:'컨설턴트'}, monthly:{'2026-01':74,'2026-02':75,'2026-03':76,'2026-04':75,'2026-05':76,'2026-06':75} },
+      34:{ scores:{전문성:67,리더십:60,협업:69,성과:65,소통:66}, courses:[{name:'리서치 지원',category:'정책연구',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':66,'2026-02':67,'2026-03':68,'2026-04':67,'2026-05':68,'2026-06':67} },
+      35:{ scores:{전문성:81,리더십:74,협업:76,성과:80,소통:72}, courses:[{name:'공공조달·계약',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':80,'2026-05':81,'2026-06':80} },
+      36:{ scores:{전문성:77,리더십:72,협업:75,성과:76,소통:70}, courses:[{name:'리스크 관리',category:'프로젝트관리',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':75,'2026-02':76,'2026-03':76,'2026-04':77,'2026-05':76,'2026-06':77} },
+      37:{ scores:{전문성:89,리더십:90,협업:83,성과:88,소통:80}, courses:[{name:'선거전략 심화',category:'정책연구',status:'completed'},{name:'디지털 모니터링',category:'AI활용',status:'in-progress'}], career:{level:'정치컨설팅부문장(상무)'}, monthly:{'2026-01':88,'2026-02':89,'2026-03':90,'2026-04':89,'2026-05':90,'2026-06':89} },
+      38:{ scores:{전문성:84,리더십:78,협업:82,성과:83,소통:79}, courses:[{name:'메시지 전략',category:'정책연구',status:'completed'}], career:{level:'수석컨설턴트'}, monthly:{'2026-01':82,'2026-02':83,'2026-03':84,'2026-04':83,'2026-05':84,'2026-06':83} },
+      39:{ scores:{전문성:78,리더십:74,협업:76,성과:77,소통:75}, courses:[{name:'위기관리',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':76,'2026-02':77,'2026-03':78,'2026-04':77,'2026-05':78,'2026-06':77} },
+      40:{ scores:{전문성:82,리더십:76,협업:80,성과:81,소통:73}, courses:[{name:'유권자 분석',category:'정책연구',status:'completed'},{name:'데이터 시각화',category:'AI활용',status:'in-progress'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':80,'2026-02':81,'2026-03':82,'2026-04':81,'2026-05':82,'2026-06':81} },
+      41:{ scores:{전문성:79,리더십:72,협업:78,성과:77,소통:80}, courses:[{name:'SNS 캠페인',category:'AI활용',status:'completed'},{name:'브랜딩',category:'커뮤니케이션',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':78,'2026-02':79,'2026-03':80,'2026-04':79,'2026-05':80,'2026-06':79} },
+      42:{ scores:{전문성:80,리더십:74,협업:77,성과:78,소통:76}, courses:[{name:'연설문 작성',category:'커뮤니케이션',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':78,'2026-02':79,'2026-03':80,'2026-04':80,'2026-05':79,'2026-06':80} },
+      43:{ scores:{전문성:72,리더십:66,협업:74,성과:70,소통:69}, courses:[{name:'현장 운영',category:'프로젝트관리',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':70,'2026-02':71,'2026-03':72,'2026-04':71,'2026-05':72,'2026-06':71} },
+      44:{ scores:{전문성:83,리더십:78,협업:80,성과:82,소통:74}, courses:[{name:'경쟁후보 분석',category:'정책연구',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':81,'2026-02':82,'2026-03':82,'2026-04':83,'2026-05':82,'2026-06':83} },
+      45:{ scores:{전문성:88,리더십:84,협업:82,성과:86,소통:76}, courses:[{name:'정무 자문',category:'정책연구',status:'completed'}], career:{level:'수석컨설턴트'}, monthly:{'2026-01':85,'2026-02':86,'2026-03':87,'2026-04':86,'2026-05':87,'2026-06':86} },
+      46:{ scores:{전문성:70,리더십:64,협업:72,성과:68,소통:67}, courses:[{name:'미디어 모니터링',category:'AI활용',status:'in-progress'}], career:{level:'컨설턴트'}, monthly:{'2026-01':68,'2026-02':69,'2026-03':70,'2026-04':69,'2026-05':70,'2026-06':69} },
+      47:{ scores:{전문성:81,리더십:75,협업:80,성과:79,소통:78}, courses:[{name:'브랜딩 워크숍',category:'커뮤니케이션',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':80,'2026-05':81,'2026-06':80} },
+      48:{ scores:{전문성:84,리더십:78,협업:79,성과:82,소통:73}, courses:[{name:'캠페인 운영',category:'프로젝트관리',status:'completed'}], career:{level:'책임컨설턴트'}, monthly:{'2026-01':81,'2026-02':82,'2026-03':83,'2026-04':82,'2026-05':83,'2026-06':82} },
+      49:{ scores:{전문성:68,리더십:62,협업:70,성과:67,소통:69}, courses:[{name:'콘텐츠 제작',category:'커뮤니케이션',status:'completed'}], career:{level:'컨설턴트'}, monthly:{'2026-01':67,'2026-02':68,'2026-03':69,'2026-04':68,'2026-05':69,'2026-06':68} },
+      50:{ scores:{전문성:82,리더십:76,협업:78,성과:80,소통:74}, courses:[{name:'공약 개발',category:'정책연구',status:'completed'}], career:{level:'선임컨설턴트'}, monthly:{'2026-01':79,'2026-02':80,'2026-03':81,'2026-04':80,'2026-05':81,'2026-06':80} }
+    };
+
+    function seedForId(id){ return (id*9301+49297)%233280; }
+    function randFromSeed(id, min, max){ const s = seedForId(id); return Math.floor(min + (s/233280)*(max-min)); }
+
+    function getTalentFor(id){
+      if(TALENT[id]) return TALENT[id];
+      const scores = { 전문성: randFromSeed(id,55,90), 리더십: randFromSeed(id+1,50,88), 협업: randFromSeed(id+2,50,92), 성과: randFromSeed(id+3,45,90), 소통: randFromSeed(id+4,48,90) };
+      const courses = [ {name:'기본 직무교육', category:'정책연구', status: (randFromSeed(id,0,100)>60?'completed':'in-progress')}, {name:'커뮤니케이션 워크숍', category:'커뮤니케이션', status:(randFromSeed(id+5,0,100)>70?'planned':'in-progress')} ];
+      const career = { level: (randFromSeed(id,1,100)>90?'부문장': (randFromSeed(id,1,100)>75?'수석연구원': (randFromSeed(id,1,100)>55?'책임연구원': (randFromSeed(id,1,100)>35?'선임연구원':'연구원')))) };
+      const monthly = {};
+      for(let m=1;m<=6;m++){ const key = '2026-' + String(m).padStart(2,'0'); monthly[key] = Math.max(40, Math.min(98, Math.round((Object.values(scores).reduce((a,b)=>a+b,0)/5) + randFromSeed(id+m,-8,8)))); }
+      return { scores, courses, career, monthly };
+    }
+
+    // Note: TALENT is fully hardcoded above for all 50 employees.
+
+    function avgScore(scores){ const vals = Object.values(scores||{}); if(!vals.length) return 0; return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length); }
+    function gradeFrom(avg){ if(avg>=90) return 'S'; if(avg>=80) return 'A'; if(avg>=70) return 'B'; return 'C'; }
+
+    function drawBar(container, label, value){ const wrap = document.createElement('div'); wrap.style.marginBottom='8px'; const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; const lab = document.createElement('div'); lab.textContent=label; lab.style.color='#cfe6ff'; const val = document.createElement('div'); val.textContent=value+'점'; val.style.color='#9fb3d6'; row.appendChild(lab); row.appendChild(val); const barBg = document.createElement('div'); barBg.style.background='#061426'; barBg.style.height='10px'; barBg.style.borderRadius='6px'; barBg.style.marginTop='6px'; barBg.style.overflow='hidden'; const bar = document.createElement('div'); bar.style.height='100%'; bar.style.width=Math.max(4,Math.min(100,value))+'%'; bar.style.background = (value>=90? '#ffd166': (value>=80? '#76c893': '#4ea1ff')); barBg.appendChild(bar); wrap.appendChild(row); wrap.appendChild(barBg); container.appendChild(wrap); }
+
+    function renderTalentFor(empId){
+      const emp = employees.find(e=>e.id===empId); if(!emp) return;
+      const data = Object.assign({}, getTalentFor(empId)); if(!data.monthly){ // ensure monthly exists
+        data.monthly = {};
+        for(let m=1;m<=6;m++){ data.monthly['2026-'+String(m).padStart(2,'0')] = avgScore(data.scores) + (m-3)*2; }
+      }
+
+      const scoresCard = document.getElementById('scoresCard'); scoresCard.innerHTML='';
+      const title = document.createElement('div'); title.style.fontWeight='700'; title.textContent = emp.name + ' • 역량 점수'; scoresCard.appendChild(title);
+      const avg = avgScore(data.scores); const grade = gradeFrom(avg);
+      const gradeRow = document.createElement('div'); gradeRow.style.marginTop='6px'; gradeRow.innerHTML = '<div style="font-size:13px;color:#9fb3d6">평균: <strong style="color:#cfe6ff">'+avg+'점</strong> · 등급: <strong style="color:#ffd166">'+grade+'</strong></div>';
+      scoresCard.appendChild(gradeRow);
+      const list = document.createElement('div'); list.style.marginTop='8px'; for(const k of ['전문성','리더십','협업','성과','소통']){ drawBar(list, k, data.scores[k] || 0); }
+      scoresCard.appendChild(list);
+
+      const coursesCard = document.getElementById('coursesCard'); coursesCard.innerHTML=''; const t1=document.createElement('div'); t1.style.fontWeight='700'; t1.textContent='교육 과정 & 수료 현황'; coursesCard.appendChild(t1);
+      const tbl = document.createElement('div'); tbl.style.marginTop='8px'; (data.courses||[]).forEach(c=>{ const row=document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.padding='6px 0'; row.style.borderBottom='1px solid rgba(255,255,255,0.02)'; const left=document.createElement('div'); left.textContent=c.name + ' · ' + c.category; left.style.color='#cfe6ff'; const right=document.createElement('div'); right.textContent = (c.status==='completed'? '수료':'진행중' || '예정'); right.style.color = (c.status==='completed'? '#76c893': (c.status==='in-progress'? '#ffd166':'#9fb3d6')); row.appendChild(left); row.appendChild(right); tbl.appendChild(row); });
+      const completed = (data.courses||[]).filter(x=>x.status==='completed').length; const total = (data.courses||[]).length; const rate = total? Math.round((completed/total)*100):0;
+      const rateLine = document.createElement('div'); rateLine.style.marginTop='8px'; rateLine.innerHTML = '<strong>수료율:</strong> '+rate+'% ('+completed+'/'+total+')'; coursesCard.appendChild(tbl); coursesCard.appendChild(rateLine);
+
+      const careerCard = document.getElementById('careerCard'); careerCard.innerHTML=''; const ctitle=document.createElement('div'); ctitle.style.fontWeight='700'; ctitle.textContent='승진 & 커리어 트랙'; careerCard.appendChild(ctitle);
+      const path = ['연구원','선임연구원','책임연구원','수석연구원','부문장']; const curr = data.career && data.career.level? data.career.level : '연구원'; const idx = path.indexOf(curr) >=0 ? path.indexOf(curr) : 0; const next = idx<path.length-1? path[idx+1] : '(최고등급)';
+      const curLine = document.createElement('div'); curLine.style.marginTop='8px'; curLine.innerHTML = '<div style="color:#cfe6ff">현재 레벨: '+curr+'</div><div style="color:#9fb3d6">다음 승진: '+next+'</div>';
+      careerCard.appendChild(curLine);
+      // simple promotion requirement: avg >= 80 for next
+      const required = 80; const monthsTo = Math.max(0, Math.ceil((required - avg)/2)); const est = new Date(); est.setMonth(est.getMonth()+monthsTo); const estStr = est.getFullYear()+'-'+String(est.getMonth()+1).padStart(2,'0');
+      const reqLine = document.createElement('div'); reqLine.style.marginTop='8px'; reqLine.innerHTML = '<div style="color:#9fb3d6">다음 승진 요건: 평균점수 ≥ '+required+'점</div><div style="color:#cfe6ff">예상 승진일: '+estStr+'</div>';
+      careerCard.appendChild(reqLine);
+
+      // projects card: link to projects and show contribution
+      const projectsCard = document.getElementById('projectsCard'); projectsCard.innerHTML=''; const ptitle=document.createElement('div'); ptitle.style.fontWeight='700'; ptitle.textContent='프로젝트 성과 기반 평가'; projectsCard.appendChild(ptitle);
+      const plist = document.createElement('div'); plist.style.marginTop='8px'; const empProjects = projects.filter(p=> (p.assigned_employee_ids||[]).includes(empId)); if(empProjects.length===0){ const none=document.createElement('div'); none.style.color='#9fb3d6'; none.textContent='할당된 프로젝트가 없습니다.'; plist.appendChild(none); } else { empProjects.forEach(p=>{ const row=document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.padding='8px 0'; row.style.borderBottom='1px solid rgba(255,255,255,0.02)'; const left=document.createElement('div'); left.innerHTML = '<div style="font-weight:700">'+p.name+'</div><div style="font-size:12px;color:#9fb3d6">진행 '+p.progress+'% • '+p.client+'</div>'; const contrib = Math.round((avg + p.progress)/2); const right=document.createElement('div'); right.style.textAlign='right'; right.innerHTML = '<div style="font-weight:700;color:#ffd166">기여 '+contrib+'점</div><div style="font-size:12px;color:#9fb3d6">상세 보기</div>'; row.appendChild(left); row.appendChild(right); plist.appendChild(row); }); }
+      projectsCard.appendChild(plist);
+
+      // draw trend chart
+      const canvas = document.getElementById('trendChart'); const ctx = canvas.getContext('2d'); const months = Object.keys(data.monthly||{}).slice(-6); const vals = months.map(m=>data.monthly[m]); drawTrendChart(ctx, months, vals);
+    }
+
+    function renderAllTalent(){
+      const list = document.getElementById('talentList'); list.innerHTML='';
+      employees.forEach(emp=>{
+        const data = getTalentFor(emp.id);
+        const card = document.createElement('div'); card.style.background='#061526'; card.style.padding='10px'; card.style.borderRadius='8px'; card.style.marginBottom='8px';
+        const h = document.createElement('div'); h.style.display='flex'; h.style.justifyContent='space-between'; h.style.alignItems='center'; h.innerHTML = '<div style="font-weight:700">'+emp.name+'</div><div style="color:#9fb3d6;font-size:12px">'+(emp.title||'')+'</div>';
+        card.appendChild(h);
+        const avg = avgScore(data.scores); const grade = gradeFrom(avg);
+        const meta = document.createElement('div'); meta.style.marginTop='6px'; meta.innerHTML = '<div style="color:#cfe6ff">평균 '+avg+'점 · 등급 <strong style="color:#ffd166">'+grade+'</strong></div>';
+        card.appendChild(meta);
+        const bars = document.createElement('div'); bars.style.display='flex'; bars.style.gap='6px'; bars.style.marginTop='8px'; bars.style.flexWrap='wrap';
+        ['전문성','리더십','협업','성과','소통'].forEach(k=>{ const small=document.createElement('div'); small.style.width='18%'; small.style.minWidth='80px'; small.style.fontSize='11px'; small.style.color='#cfe6ff'; small.innerHTML = '<div style="margin-bottom:6px">'+k+'</div>'; const val = data.scores[k] || 0; const bg=document.createElement('div'); bg.style.background='#041624'; bg.style.height='8px'; bg.style.borderRadius='4px'; const fg=document.createElement('div'); fg.style.width=Math.max(4,Math.min(100,val))+'%'; fg.style.height='100%'; fg.style.background=(val>=90? '#ffd166': (val>=80? '#76c893':'#4ea1ff')); bg.appendChild(fg); small.appendChild(bg); bars.appendChild(small); });
+        card.appendChild(bars);
+        const courses = document.createElement('div'); courses.style.marginTop='8px'; const completed = (data.courses||[]).filter(x=>x.status==='completed').length; const total = (data.courses||[]).length; courses.innerHTML = '<div style="color:#9fb3d6;font-size:12px">수료율: '+(total?Math.round((completed/total)*100):0)+'% ('+completed+'/'+total+')</div>';
+        card.appendChild(courses);
+        const career = document.createElement('div'); career.style.marginTop='6px'; career.innerHTML = '<div style="color:#cfe6ff;font-size:12px">레벨: '+(data.career&&data.career.level?data.career.level:'연구원')+'</div>';
+        card.appendChild(career);
+        // small project contributions
+        const empproj = projects.filter(p=> (p.assigned_employee_ids||[]).includes(emp.id));
+        const projdiv = document.createElement('div'); projdiv.style.marginTop='6px'; projdiv.style.fontSize='12px'; projdiv.style.color='#9fb3d6'; projdiv.textContent = '프로젝트: ' + (empproj.length? empproj.map(p=>p.name).slice(0,2).join(', '): '없음');
+        card.appendChild(projdiv);
+        list.appendChild(card);
+      });
+    }
+
+    function drawTrendChart(ctx, labels, values){ const w = ctx.canvas.width; const h = ctx.canvas.height; ctx.clearRect(0,0,w,h); const max = Math.max(100, ...values); const pad = 20; const barW = (w - pad*2) / Math.max(1, values.length); values.forEach((v,i)=>{ const x = pad + i*barW + 6; const barH = Math.round((v/max) * (h - pad)); ctx.fillStyle = '#4ea1ff'; ctx.fillRect(x, h - pad - barH, barW - 12, barH); ctx.fillStyle = '#cfe6ff'; ctx.font='11px sans-serif'; ctx.fillText(String(v), x, h - pad - barH - 6); ctx.fillStyle = '#9fb3d6'; ctx.fillText(labels[i].slice(5), x, h - 4); }); }
+
+    // populate selector and wire tab
+    const talentSelect = document.getElementById('talentSelect'); employees.forEach(e=>{ const opt=document.createElement('option'); opt.value=e.id; opt.textContent = e.name + ' • ' + (e.title||''); talentSelect.appendChild(opt); });
+    const tabTalent = document.getElementById('tabTalent'); tabTalent.addEventListener('click', ()=>{ window.open('talent.html','_blank'); });
+    talentSelect.addEventListener('change', ()=> renderTalentFor(Number(talentSelect.value)));
+
     setActiveFilter('전체');
   })();
   </script>
