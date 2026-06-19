@@ -259,6 +259,31 @@ def generate_business_ideas_via_claude():
         return [IDEAS['연구'], IDEAS['과제수행'], IDEAS['정치컨설팅']]
 
 
+def start_polling():
+    """Start long-polling Telegram getUpdates and dispatch commands."""
+    print('봇 리스닝 중... (Ctrl+C로 종료)')
+    offset = None
+    try:
+        while True:
+            try:
+                params = {'limit': 10}
+                if offset is not None:
+                    params['offset'] = offset
+                r = requests.get(GETUPDATES_URL, params=params, timeout=10)
+                if not r.ok:
+                    print('getUpdates 실패', r.status_code, r.text)
+                else:
+                    data = r.json()
+                    for upd in data.get('result', []):
+                        handle_update(upd)
+                        offset = upd.get('update_id', offset) + 1
+            except Exception as e:
+                print('폴링 오류:', e)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print('\n리스닝 중지 (Ctrl+C)')
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='KSG Telegram Bot')
     parser.add_argument('--listen', action='store_true', help='Start Telegram polling listener')
