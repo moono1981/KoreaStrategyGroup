@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Operations — Korea Strategy Group</title>
+  <style>
+    :root{--bg:#071021;--card:#061426;--muted:#9fb3d6;--text:#e6eef8;--accent:#1b6b88;--danger:#ff6b6b;--ok:#4caf50}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,#061224,#08172a)}
+    .tabs{display:flex;gap:8px}
+    .tab{background:var(--card);border:1px solid rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer}
+    .tab.active{background:var(--accent);color:#071021}
+    main{padding:16px}
+    .panel{display:none}
+    .panel.active{display:block}
+    .card{background:var(--card);padding:12px;border-radius:8px;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+    .btn{background:var(--accent);color:#071021;border:none;padding:6px 8px;border-radius:6px;cursor:pointer}
+    .muted{color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+    /* CSS bar chart (vertical bars) */
+    .chart{display:flex;gap:8px;align-items:end;height:180px;padding:12px;background:linear-gradient(180deg,#041224,#061426);border-radius:8px}
+    .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+    .barInner{width:60%;background:#2b90d9;border-radius:6px 6px 0 0}
+    .barLabel{margin-top:8px;font-size:12px;color:var(--muted)}
+    /* risk chips */
+    .risk{padding:8px;border-radius:6px;margin-bottom:6px}
+    .risk.high{background:rgba(255,107,107,0.12);border-left:4px solid var(--danger)}
+    .risk.med{background:rgba(255,165,0,0.06);border-left:4px solid orange}
+    .risk.low{background:rgba(76,175,80,0.06);border-left:4px solid var(--ok)}
+    /* modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center}
+    .modal .box{background:var(--card);padding:16px;border-radius:8px;max-width:720px;width:100%}
+    .small{font-size:13px}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h2 style="margin:0;font-size:16px">Operations — Korea Strategy Group</h2>
+      <div class="muted" style="font-size:12px">회사 운영관리 시스템 (file:// friendly)</div>
+    </div>
+    <div class="tabs">
+      <button id="tabMeet" class="tab active">회의체계</button>
+      <button id="tabEval" class="tab">평가체계</button>
+      <button id="tabStatus" class="tab">사업운영 현황</button>
+    </div>
+  </header>
+  <main>
+    <section id="meetingPanel" class="panel active">
+      <div id="meetingsContent"></div>
+    </section>
+
+    <section id="evalPanel" class="panel">
+      <div id="evalContent"></div>
+    </section>
+
+    <section id="statusPanel" class="panel">
+      <div id="statusContent"></div>
+    </section>
+  </main>
+
+  <div id="modalRoot" style="display:none"></div>
+
+  <script>
+    // Hardcoded data (all inline)
+    const meetingTypes = [
+      {id:'전사회의',주기:'월 1회',참석자:['CEO','전직원'],안건:['월간 성과 보고','주요 일정/리스크 공유'],의사록:`의사록\n- 일시:\n- 참석자:\n- 주요 안건:\n- 결정사항:\n- 액션아이템(책임자/기한):\n`},
+      {id:'부문회의',주기:'주 1회',참석자:['부문장','팀원'],안건:['팀 진행 상황','자원/인력 요청'],의사록:`의사록\n- 일시:\n- 부문:\n- 참석자:\n- 논의내용:\n- 조치사항:`},
+      {id:'프로젝트회의',주기:'주 2회',참석자:['PM','프로젝트팀'],안건:['마일스톤 점검','이슈 처리'],의사록:`의사록\n- 프로젝트:\n- 일시:\n- 참석자:\n- 진행상태:\n- 이슈/결정사항:`},
+      {id:'긴급회의',주기:'수시',참석자:['관련책임자'],안건:['긴급이슈 대응'],의사록:`의사록\n- 일시:\n- 원인/상황:\n- 대응조치:\n- 책임자/완료예정일:`}
+    ];
+
+    const kpiByDivision = {
+      '연구부문':[
+        {kpi:'논문/보고서 제출건수',target:12},
+        {kpi:'연구과제 성공률',target:90}
+      ],
+      '과제수행부문':[
+        {kpi:'프로젝트 납기 준수율',target:95},
+        {kpi:'고객 만족도',target:88}
+      ],
+      '정치컨설팅부문':[
+        {kpi:'캠페인 목표달성도',target:85},
+        {kpi:'미디어 노출 수',target:200}
+      ]
+    };
+
+    const quarterlySchedule = [
+      {quarter:'Q1',period:'1월-3월',action:'평가 접수 및 1차 리뷰',deadline:'3월 15일'},
+      {quarter:'Q2',period:'4월-6월',action:'중간점검 및 보정',deadline:'6월 15일'},
+      {quarter:'Q3',period:'7월-9월',action:'하반기 평가 실시',deadline:'9월 15일'},
+      {quarter:'Q4',period:'10월-12월',action:'연말 종합평가 및 보상연동',deadline:'12월 20일'}
+    ];
+
+    const gradeCriteria = [
+      {grade:'S',min:95,desc:'탁월한 성과 및 리더십'},
+      {grade:'A',min:85,desc:'우수한 성과'},
+      {grade:'B',min:70,desc:'기준 이상'},
+      {grade:'C',min:60,desc:'개선 필요'},
+      {grade:'D',min:0,desc:'저조 — 교육/조치 필요'}
+    ];
+
+    const incentiveMapping = [
+      {grade:'S',bonus:'20%'},
+      {grade:'A',bonus:'10%'},
+      {grade:'B',bonus:'5%'},
+      {grade:'C',bonus:'0%'},
+      {grade:'D',bonus:'0%'}
+    ];
+
+    const businessProjects = {
+      '연구부문':[ {name:'정책연구 A',status:'진행중',manager:'강민수'},{name:'데이터 정비',status:'완료',manager:'김도윤'} ],
+      '과제수행부문':[ {name:'공공 PMO',status:'진행중',manager:'윤서진'},{name:'지역 활성화',status:'입찰중',manager:'박서윤'} ],
+      '정치컨설팅부문':[ {name:'캠페인 B',status:'진행중',manager:'한지욱'},{name:'여론모니터링',status:'완료',manager:'이재원'} ]
+    };
+
+    const monthlyRevenue = {
+      months:['1월','2월','3월','4월','5월','6월'],
+      targets:[120,130,140,150,160,170],
+      actuals:[110,135,125,155,150,165]
+    };
+
+    const risks = [
+      {id:1,title:'인력 공백 리스크',impact:'high',detail:'핵심인력 이탈 가능성 — 대체 계획 필요'},
+      {id:2,title:'예산 지연',impact:'med',detail:'예산 승인 지연으로 프로젝트 일정 압박'},
+      {id:3,title:'데이터 품질 이슈',impact:'low',detail:'일부 외부 데이터셋 결측치 존재'}
+    ];
+
+    // Utility: show modal with content
+    function showModal(title,content){ const root=document.getElementById('modalRoot'); root.innerHTML = `<div class="modal" id="_m"><div class="box"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>${title}</strong><button class="btn" onclick="closeModal()">닫기</button></div><pre style="white-space:pre-wrap;line-height:1.4" class="small">${content}</pre></div></div>`; root.style.display='block'; }
+    function closeModal(){ const root=document.getElementById('modalRoot'); root.style.display='none'; root.innerHTML=''; }
+
+    // Render Meeting System
+    function renderMeetings(){ const el=document.getElementById('meetingsContent'); let html='';
+      meetingTypes.forEach(m=>{
+        html += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${m.id}</strong><div class="muted small">주기: ${m.주기} • 참석자: ${m.참석자.join(', ')}</div></div><div><button class="btn" onclick="showModal('${m.id} - 의사록 템플릿', '${escapeForTemplate(m.의사록)}')">의사록 템플릿</button></div></div><div style="margin-top:8px"><strong>예시 안건</strong><ul class="small">${m.안건.map(a=>`<li>${a}</li>`).join('')}</ul></div></div>`;
+      });
+      el.innerHTML = html;
+    }
+
+    function escapeForTemplate(text){ return text.replace(/`/g,'\\`').replace(/\n/g,'\\n').replace(/'/g,"\\'"); }
+
+    // Render Evaluation System
+    function renderEvaluation(){ const el=document.getElementById('evalContent'); let html='';
+      // KPI tables
+      for(const div in kpiByDivision){ html += `<div class="card"><strong>${div} KPI</strong><table><thead><tr><th>KPI</th><th>목표</th></tr></thead><tbody>${kpiByDivision[div].map(k=>`<tr><td>${k.kpi}</td><td>${k.target}</td></tr>`).join('')}</tbody></table></div>`; }
+      // Quarterly schedule
+      html += `<div class="card"><strong>분기별 평가 일정</strong><table><thead><tr><th>분기</th><th>기간</th><th>작업</th><th>마감</th></tr></thead><tbody>${quarterlySchedule.map(q=>`<tr><td>${q.quarter}</td><td>${q.period}</td><td>${q.action}</td><td>${q.deadline}</td></tr>`).join('')}</tbody></table></div>`;
+      // Grade criteria and incentives
+      html += `<div class="card"><strong>직원 성과 등급 기준</strong><table><thead><tr><th>등급</th><th>최소점수</th><th>설명</th></tr></thead><tbody>${gradeCriteria.map(g=>`<tr><td>${g.grade}</td><td>${g.min}%</td><td>${g.desc}</td></tr>`).join('')}</tbody></table></div>`;
+      html += `<div class="card"><strong>평가 결과 → 인센티브 연동</strong><table><thead><tr><th>등급</th><th>인센티브</th></tr></thead><tbody>${incentiveMapping.map(i=>`<tr><td>${i.grade}</td><td>${i.bonus}</td></tr>`).join('')}</tbody></table></div>`;
+      el.innerHTML = html;
+    }
+
+    // Render Business Status
+    function renderStatus(){ const el=document.getElementById('statusContent'); let html='';
+      // projects by division
+      html += '<div class="grid">';
+      for(const d in businessProjects){ html += `<div class="card"><strong>${d} - 현재 사업</strong><ul class="small">${businessProjects[d].map(p=>`<li><strong>${p.name}</strong> (${p.status}) • PM: ${p.manager}</li>`).join('')}</ul></div>`; }
+      html += '</div>';
+      // revenue chart (pure CSS bars with inline heights set by JS)
+      html += `<div class="card"><strong>월별 매출 목표 vs 실적</strong><div class="chart" id="revChart"></div><div style="margin-top:8px;color:var(--muted);font-size:13px">* 단위: 백만원 (예시 수치)</div></div>`;
+      // risk board
+      html += `<div class="card"><strong>리스크 관리 현황</strong>${risks.map(r=>`<div class="risk ${r.impact=='high'?'high':r.impact=='med'?'med':'low'}"><strong>${r.title}</strong><div class="small muted">${r.detail}</div></div>`).join('')}</div>`;
+      el.innerHTML = html;
+
+      // build chart bars
+      const chart = document.getElementById('revChart'); chart.innerHTML='';
+      const max = Math.max(...monthlyRevenue.targets.concat(monthlyRevenue.actuals));
+      for(let i=0;i<monthlyRevenue.months.length;i++){ const t=monthlyRevenue.targets[i]; const a=monthlyRevenue.actuals[i]; const tPct = Math.round((t/max)*100); const aPct = Math.round((a/max)*100);
+        const bar = document.createElement('div'); bar.className='bar';
+        bar.innerHTML = `<div style="width:100%;display:flex;gap:4px;align-items:flex-end"><div style="flex:1;display:flex;align-items:flex-end;justify-content:center"><div class=\"barInner\" style=\"height:${tPct}%;background:#2b90d9;opacity:0.35;width:70%\"></div></div><div style=\"flex:1;display:flex;align-items:flex-end;justify-content:center\"><div class=\"barInner\" style=\"height:${aPct}%;width:70%\"></div></div></div><div class=\"barLabel\">${monthlyRevenue.months[i]}</div>`;
+        chart.appendChild(bar);
+      }
+    }
+
+    // Tab switching using getElementById and style.display
+    function showPanel(id){ const panels = {meet:'meetingPanel',eval:'evalPanel',status:'statusPanel'}; // hide all
+      document.getElementById('meetingPanel').style.display='none'; document.getElementById('evalPanel').style.display='none'; document.getElementById('statusPanel').style.display='none';
+      document.getElementById('meetingPanel').classList.remove('active'); document.getElementById('evalPanel').classList.remove('active'); document.getElementById('statusPanel').classList.remove('active');
+      // tabs active
+      document.getElementById('tabMeet').classList.remove('active'); document.getElementById('tabEval').classList.remove('active'); document.getElementById('tabStatus').classList.remove('active');
+      if(id==='meet'){ document.getElementById('meetingPanel').style.display='block'; document.getElementById('meetingPanel').classList.add('active'); document.getElementById('tabMeet').classList.add('active'); }
+      if(id==='eval'){ document.getElementById('evalPanel').style.display='block'; document.getElementById('evalPanel').classList.add('active'); document.getElementById('tabEval').classList.add('active'); }
+      if(id==='status'){ document.getElementById('statusPanel').style.display='block'; document.getElementById('statusPanel').classList.add('active'); document.getElementById('tabStatus').classList.add('active'); }
+    }
+
+    // wire tab buttons
+    document.getElementById('tabMeet').addEventListener('click',()=>{ showPanel('meet'); renderMeetings(); });
+    document.getElementById('tabEval').addEventListener('click',()=>{ showPanel('eval'); renderEvaluation(); });
+    document.getElementById('tabStatus').addEventListener('click',()=>{ showPanel('status'); renderStatus(); });
+
+    // initial render
+    renderMeetings();
+
+  </script>
+</body>
+</html>
