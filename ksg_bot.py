@@ -21,7 +21,7 @@ API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 GETUPDATES_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
 
 # Anthropic / Claude
-ANTHROPIC_API_KEY = "YOUR_ANTHROPIC_API_KEY"
+ANTHROPIC_API_KEY = "sk-ant-api03-RmF...7AAA"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/complete"
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
 
@@ -196,26 +196,55 @@ def handle_update(update):
 
 
 def start_polling():
-    print('폴링 시작...')
+    print('봇 리스닝 중... (Ctrl+C로 종료)')
     offset = None
-    while True:
-        try:
-            params = {'timeout':30, 'limit':10}
-            if offset: params['offset'] = offset
-            r = requests.get(GETUPDATES_URL, params=params, timeout=40)
-            if not r.ok:
-                print('getUpdates 실패', r.status_code, r.text)
-                time.sleep(5)
-                continue
-            data = r.json()
-            for upd in data.get('result',[]):
-                handle_update(upd)
-                offset = upd['update_id'] + 1
-        except Exception as e:
-            print('폴링 오류:', e)
-            time.sleep(5)
+    try:
+        while True:
+            try:
+                params = {'limit': 10}
+                if offset is not None:
+                    params['offset'] = offset
+                r = requests.get(GETUPDATES_URL, params=params, timeout=10)
+                if not r.ok:
+                    print('getUpdates 실패', r.status_code, r.text)
+                else:
+                    data = r.json()
+                    for upd in data.get('result', []):
+                        handle_update(upd)
+                        offset = upd['update_id'] + 1
+            except Exception as e:
+                print('폴링 오류:', e)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print('\n리스닝 중지 (Ctrl+C)')
 
+
+
+def run_command_arg(cmd):
+    c = cmd.lower() if cmd else ''
+    if c == 'morning':
+        send_message(compose_morning())
+    elif c == 'afternoon':
+        send_message(compose_afternoon())
+    elif c == 'evening':
+        send_message(compose_evening())
+    elif c in ('all','full','전체'):
+        send_message(compose_morning())
+        send_message(compose_afternoon())
+        send_message(compose_evening())
+    else:
+        print('알 수 없는 인수:', cmd)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='KSG Telegram Bot')
+    parser.add_argument('--listen', action='store_true', help='Start Telegram polling listener')
+    parser.add_argument('cmd', nargs='?', help="Optional command: morning|afternoon|evening|all")
+    args = parser.parse_args()
+
+    if args.listen:
+        start_polling()
+    elif args.cmd:
+        run_command_arg(args.cmd)
+    else:
+        main()
