@@ -284,6 +284,39 @@ def start_polling():
         print('\n리스닝 중지 (Ctrl+C)')
 
 
+def handle_update(update):
+    """Process a single Telegram update dict and respond accordingly."""
+    msg = update.get('message') or update.get('edited_message')
+    if not msg:
+        return
+    text = msg.get('text', '')
+    if not text:
+        return
+    chat = msg.get('chat', {})
+    cid = chat.get('id')
+    if not cid:
+        return
+    cmd = text.split()[0].lower()
+    if cmd == '/morning':
+        send_message(compose_morning(), chat_id=cid)
+    elif cmd == '/afternoon':
+        send_message(compose_afternoon(), chat_id=cid)
+    elif cmd == '/evening':
+        send_message(compose_evening(), chat_id=cid)
+    elif cmd == '/idea':
+        ideas = generate_business_ideas_via_claude()
+        body = '💡 새 사업 아이디어:\n' + '\n'.join([f"{i+1}. {it}" for i, it in enumerate(ideas)])
+        send_message(body, chat_id=cid)
+    elif cmd == '/status':
+        body = '📊 전체 프로젝트 현황:\n' + '\n'.join([f"- {p['name']}: {p['status']} ({p['progress']}%)" for p in PROJECT_STATUS])
+        send_message(body, chat_id=cid)
+    elif cmd == '/help':
+        body = '/morning, /afternoon, /evening, /idea, /status, /help'
+        send_message(body, chat_id=cid)
+    else:
+        send_message('알 수 없는 명령어입니다. /help 로 명령어 목록을 확인하세요.', chat_id=cid)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='KSG Telegram Bot')
     parser.add_argument('--listen', action='store_true', help='Start Telegram polling listener')
