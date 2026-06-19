@@ -1,0 +1,35 @@
+{
+  "company": {
+    "name_ko": "코리아전략그룹",
+    "name_en": "Korea Strategy Group",
+    "abbreviation": "KSG",
+    "founded": "2009-03-02",
+    "headquarters": {
+      "address": "서울특별시 영등포구 의사당대로 1",
+      "building": "KSG타워 12-15층",
+      "city": "서울",
+      "country": "대한민국"
+    },
+    "ceo": "정도현",
+    "industry": "정책연구 · 정치컨설팅 · 전략기획",
+    "employees_count": 50,
+    "vision": "데이터와 통찰로 대한민국의 전략적 의사결정을 돕는다",
+    "mission": "객관적 연구, 정밀한 과제수행, 신뢰받는 정치컨설팅을 통해 공공과 민간의 미래를 설계한다",
+    "core_values": [
+      "객관성 (Objectivity)",
+      "신뢰 (Integrity)",
+      "통찰 (Insight)",
+      "실행력 (Execution)"
+    ],
+    "website": "https://www.koreastrategygroup.kr",
+    "contact": {
+      "email": "contact@koreastrategygroup.kr",
+      "phone": "02-789-0100"
+    },
+    "divisions": [
+      "연구부문",
+      "과제수행부문",
+      "정치컨설팅부문"
+    ]
+  }
+}

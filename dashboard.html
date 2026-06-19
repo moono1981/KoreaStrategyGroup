@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Korea Strategy Group — Employee Directory</title>
+</head>
+<body style="margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:#0b1220;color:#e6eef8;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;min-height:100vh">
+    <header style="padding:16px 20px;background:linear-gradient(90deg,#071031,#071a2a);display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h1 style="margin:0;font-size:18px;letter-spacing:0.4px">Korea Strategy Group</h1>
+        <div style="font-size:12px;color:#9fb3d6;opacity:.9">직원 디렉터리</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input id="search" placeholder="이름으로 검색" aria-label="search" style="padding:8px 10px;border-radius:8px;background:#061226;border:1px solid #123245;color:#e6eef8;outline:none;width:220px" />
+        <div id="filters" style="display:flex;gap:8px;align-items:center"></div>
+        <div style="display:flex;gap:8px;margin-left:8px;">
+          <button id="tabCards" style="padding:8px 10px;border-radius:8px;background:#15405a;border:1px solid #123245;color:#e6eef8;cursor:pointer">직원 카드</button>
+          <button id="tabOrg" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">조직도</button>
+          <button id="tabProjects" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">프로젝트</button>
+        </div>
+        <button id="addEmployee" style="margin-left:12px;padding:8px 10px;border-radius:8px;background:#1b6f3a;border:1px solid #174f2b;color:#fff;cursor:pointer">직원 추가</button>
+      </div>
+    </header>
+
+    <main style="padding:18px;flex:1;display:flex;gap:18px;align-items:flex-start">
+      <section style="flex:1;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="color:#9fb3d6;font-size:13px">총 직원: <span id="count">--</span></div>
+          <div style="color:#8fa7c8;font-size:12px">Dark theme · Vanilla JS · No frameworks</div>
+        </div>
+
+        <div id="cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
+        <div id="orgView" style="display:none;padding:6px;border-radius:8px;background:#071428;color:#e6eef8"></div>
+        <div id="projectsView" style="display:none;padding:6px;border-radius:8px;background:#071428;color:#e6eef8"></div>
+
+        <div id="noResults" style="display:none;color:#9fb3d6;padding:18px;background:#071428;border-radius:8px">검색 결과가 없습니다.</div>
+      </section>
+
+      <aside style="width:280px;display:flex;flex-direction:column;gap:12px">
+        <div style="background:#071428;padding:12px;border-radius:8px">
+          <div style="font-size:13px;color:#9fb3d6;margin-bottom:8px">필터 (부문)</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button data-division="전체" class="filterBtn" style="padding:8px 10px;border-radius:8px;background:#123046;border:1px solid #123046;color:#e6eef8;cursor:pointer">전체</button>
+            <button data-division="연구부문" class="filterBtn" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">연구부문</button>
+            <button data-division="과제수행" class="filterBtn" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">과제수행</button>
+            <button data-division="정치컨설팅" class="filterBtn" style="padding:8px 10px;border-radius:8px;background:#071428;border:1px solid #0b2940;color:#9fb3d6;cursor:pointer">정치컨설팅</button>
+          </div>
+        </div>
+
+        <div style="background:#071428;padding:12px;border-radius:8px">
+          <div style="font-size:13px;color:#9fb3d6;margin-bottom:8px">도움말</div>
+          <div style="font-size:12px;color:#8fa7c8">이름으로 검색하거나 부문 버튼을 사용해 필터하세요.</div>
+        </div>
+      </aside>
+    </main>
+
+    <footer style="padding:12px 18px;background:#021226;color:#90b0d6;font-size:12px;text-align:right">데이터: employees.json</footer>
+  </div>
+
+  <script>
+  (function(){
+    const cardsEl = document.getElementById('cards');
+    const orgEl = document.getElementById('orgView');
+    const projectsEl = document.getElementById('projectsView');
+    const countEl = document.getElementById('count');
+    const noResultsEl = document.getElementById('noResults');
+    const searchEl = document.getElementById('search');
+    const filtersEl = document.getElementById('filters');
+    const filterButtons = Array.from(document.getElementsByClassName('filterBtn'));
+    const tabCards = document.getElementById('tabCards');
+    const tabOrg = document.getElementById('tabOrg');
+    const tabProjects = document.getElementById('tabProjects');
+    const addEmployeeBtn = document.getElementById('addEmployee');
+    let employees = [];
+    let activeDivision = '전체';
+    let q = '';
+    let viewMode = 'cards'; // 'cards' or 'org'
+    let editSession = { mode: null, id: null };
+
+    // create modals (profile and edit)
+    const modalOverlay = document.createElement('div');
+    modalOverlay.style.position='fixed'; modalOverlay.style.left=0; modalOverlay.style.top=0; modalOverlay.style.right=0; modalOverlay.style.bottom=0;
+    modalOverlay.style.background='rgba(2,6,12,0.6)'; modalOverlay.style.display='none'; modalOverlay.style.alignItems='center'; modalOverlay.style.justifyContent='center'; modalOverlay.style.zIndex=9999;
+    modalOverlay.addEventListener('click',(e)=>{ if(e.target===modalOverlay) closeModal(); });
+    const modalBox = document.createElement('div'); modalBox.style.background='#071428'; modalBox.style.borderRadius='8px'; modalBox.style.padding='16px'; modalBox.style.minWidth='320px'; modalBox.style.maxWidth='760px'; modalBox.style.maxHeight='80vh'; modalBox.style.overflow='auto'; modalOverlay.appendChild(modalBox);
+    document.body.appendChild(modalOverlay);
+
+    function openModal(contentEl){ modalBox.innerHTML=''; modalBox.appendChild(contentEl); modalOverlay.style.display='flex'; }
+    function closeModal(){ modalOverlay.style.display='none'; editSession.mode=null; editSession.id=null; }
+
+    function normalizeDivision(d){
+      if(!d) return '기타';
+      if(d.indexOf('연구')!==-1) return '연구부문';
+      if(d.indexOf('과제')!==-1) return '과제수행';
+      if(d.indexOf('정치')!==-1) return '정치컨설팅';
+      return d;
+    }
+
+    function matchName(emp, q){
+      if(!q) return true;
+      return emp.name.indexOf(q)!==-1 || (emp.title && emp.title.indexOf(q)!==-1);
+    }
+
+    function render(){
+      const filtered = employees.filter(emp => {
+        const div = normalizeDivision(emp.division || emp.div || emp['division']);
+        const divisionMatch = activeDivision === '전체' || div === activeDivision;
+        return divisionMatch && matchName(emp, q);
+      });
+
+      cardsEl.innerHTML = '';
+      countEl.textContent = filtered.length + '/' + employees.length;
+      if(filtered.length === 0){ noResultsEl.style.display = 'block'; } else { noResultsEl.style.display = 'none'; }
+
+      filtered.forEach(emp => {
+        const card = document.createElement('div');
+        card.style.background = '#071428';
+        card.style.padding = '12px';
+        card.style.borderRadius = '8px';
+        card.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.02)';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+
+        const nameRow = document.createElement('div'); nameRow.style.display='flex'; nameRow.style.justifyContent='space-between'; nameRow.style.alignItems='center';
+        const name = document.createElement('div'); name.textContent = emp.name || emp.name_kor || 'Unknown'; name.style.fontWeight='700'; name.style.fontSize='16px';
+        const age = document.createElement('div'); age.textContent = (emp.age? emp.age + '세' : ''); age.style.fontSize='13px'; age.style.opacity='0.9';
+        nameRow.appendChild(name); nameRow.appendChild(age);
+
+        const role = document.createElement('div'); role.textContent = emp.title || emp.role || ''; role.style.color='#cfe6ff'; role.style.marginTop='8px'; role.style.fontSize='13px';
+        const division = document.createElement('div'); division.textContent = normalizeDivision(emp.division || emp.div || emp['division'] || ''); division.style.fontSize='12px'; division.style.color='#9fb3d6'; division.style.marginTop='6px';
+
+        const traits = document.createElement('div'); traits.style.display='flex'; traits.style.flexWrap='wrap'; traits.style.gap='6px'; traits.style.marginTop='10px';
+        const tlist = emp.personality || emp.personalityTraits || emp.traits || emp.personality || emp.personality || [];
+        (Array.isArray(tlist) ? tlist : (tlist? [tlist] : [])).forEach(t=>{ const chip=document.createElement('div'); chip.textContent=t; chip.style.padding='6px 8px'; chip.style.fontSize='12px'; chip.style.background='#061526'; chip.style.borderRadius='6px'; chip.style.color='#bfe9ff'; traits.appendChild(chip)});
+
+        card.appendChild(nameRow); card.appendChild(role); card.appendChild(division); card.appendChild(traits);
+        cardsEl.appendChild(card);
+      });
+    }
+
+    function setActiveFilter(name){
+      activeDivision = name;
+      filterButtons.forEach(b => {
+        if(b.getAttribute('data-division')===name){ b.style.background = '#1b4f72'; b.style.color='#fff'; b.style.border='1px solid #1b4f72' }
+        else { b.style.background = '#071428'; b.style.color='#9fb3d6'; b.style.border='1px solid #0b2940' }
+      });
+      render();
+    }
+
+    // wire filter buttons in aside AND top small container
+    filterButtons.forEach(b=>{ b.addEventListener('click',()=> setActiveFilter(b.getAttribute('data-division'))) });
+
+    // allow quick keyboard search
+    searchEl.addEventListener('input', e=>{ q = e.target.value.trim(); render(); });
+
+    // embedded employees data (inlined to avoid file:// CORS)
+    const EMBEDDED = {
+      "employees": [
+    { "id": 1,  "name": "정도현", "age": 58, "title": "대표이사(CEO)", "division": "경영진", "personality": "결단력 있고 카리스마가 강하지만 때로 독선적", "strength": "큰 그림을 읽는 통찰력과 인맥", "weakness": "디테일을 잘 챙기지 못함", "expertise": "전략기획, 조직경영" },
+    { "id": 2,  "name": "강민수", "age": 49, "title": "연구부문장(상무)", "division": "연구부문", "personality": "꼼꼼하고 논리적이며 신중함", "strength": "데이터 해석과 보고서 품질관리", "weakness": "변화에 보수적", "expertise": "정책연구, 통계분석" },
+    { "id": 3,  "name": "이서연", "age": 41, "title": "수석연구위원", "division": "연구부문", "personality": "차분하고 분석적이며 경청을 잘함", "strength": "복잡한 사회현상 구조화", "weakness": "결정을 미루는 경향", "expertise": "사회조사방법론" },
+    { "id": 4,  "name": "박준영", "age": 38, "title": "책임연구원", "division": "연구부문", "personality": "호기심 많고 적극적", "strength": "신속한 자료 수집과 트렌드 포착", "weakness": "마무리가 약함", "expertise": "여론조사 설계" },
+    { "id": 5,  "name": "최유진", "age": 35, "title": "책임연구원", "division": "연구부문", "personality": "완벽주의적이고 책임감 강함", "strength": "정량분석 정확도", "weakness": "지나친 자기검열로 속도 저하", "expertise": "계량경제 분석" },
+    { "id": 6,  "name": "김도윤", "age": 33, "title": "선임연구원", "division": "연구부문", "personality": "낙천적이고 협업을 즐김", "strength": "팀 분위기 메이커", "weakness": "비판에 약함", "expertise": "정성연구, 인터뷰" },
+    { "id": 7,  "name": "한소희", "age": 31, "title": "선임연구원", "division": "연구부문", "personality": "조용하지만 집요함", "strength": "데이터 클리닝과 검증", "weakness": "의견 표현이 소극적", "expertise": "데이터 전처리" },
+    { "id": 8,  "name": "오태경", "age": 36, "title": "선임연구원", "division": "연구부문", "personality": "직설적이고 추진력 있음", "strength": "프로젝트 드라이브", "weakness": "표현이 거칠어 마찰", "expertise": "정책영향평가" },
+    { "id": 9,  "name": "신예린", "age": 29, "title": "연구원", "division": "연구부문", "personality": "성실하고 배움에 열정적", "strength": "통계패키지 활용 능력", "weakness": "경험 부족", "expertise": "R, Python 데이터분석" },
+    { "id": 10, "name": "장현우", "age": 30, "title": "연구원", "division": "연구부문", "personality": "창의적이고 자유분방", "strength": "시각화·인포그래픽", "weakness": "규칙적 업무에 약함", "expertise": "데이터 시각화" },
+    { "id": 11, "name": "윤채원", "age": 28, "title": "연구원", "division": "연구부문", "personality": "꼼꼼하고 차분함", "strength": "설문 문항 설계", "weakness": "멀티태스킹 약함", "expertise": "설문조사 설계" },
+    { "id": 12, "name": "배성민", "age": 34, "title": "선임연구원", "division": "연구부문", "personality": "분석적이며 토론을 즐김", "strength": "거시경제 동향 해석", "weakness": "고집이 셈", "expertise": "경제정책 분석" },
+    { "id": 13, "name": "임하늘", "age": 27, "title": "연구원", "division": "연구부문", "personality": "밝고 사교적", "strength": "현장 조사 친화력", "weakness": "꼼꼼함 부족", "expertise": "현장 여론조사" },
+    { "id": 14, "name": "권지호", "age": 32, "title": "선임연구원", "division": "연구부문", "personality": "이성적이고 객관적", "strength": "통계 모델링", "weakness": "감정적 소통에 둔감", "expertise": "예측모델링" },
+    { "id": 15, "name": "송다은", "age": 26, "title": "연구원", "division": "연구부문", "personality": "성실하고 겸손함", "strength": "문헌조사·정리", "weakness": "자신감 부족", "expertise": "선행연구 검토" },
+    { "id": 16, "name": "조현석", "age": 44, "title": "수석연구위원", "division": "연구부문", "personality": "온화하지만 원칙적", "strength": "연구 윤리·방법론 자문", "weakness": "신기술 수용 더딤", "expertise": "연구설계, 검증" },
+    { "id": 17, "name": "문가영", "age": 37, "title": "책임연구원", "division": "연구부문", "personality": "활동적이고 추진력 있음", "strength": "프로젝트 일정 관리", "weakness": "완벽주의로 인한 압박", "expertise": "복지정책 연구" },
+    { "id": 18, "name": "노준혁", "age": 39, "title": "책임연구원", "division": "연구부문", "personality": "신중하고 보수적", "strength": "리스크 사전 식별", "weakness": "변화 거부감", "expertise": "재정·예산 분석" },
+    { "id": 19, "name": "황수아", "age": 30, "title": "연구원", "division": "연구부문", "personality": "긍정적이고 적응력 높음", "strength": "다양한 주제 학습", "weakness": "전문성 깊이 부족", "expertise": "교육정책 조사" },
+
+    { "id": 20, "name": "윤서진", "age": 47, "title": "과제수행부문장(상무)", "division": "과제수행부문", "personality": "추진력 강하고 현실적", "strength": "수주 협상과 성과 관리", "weakness": "워라밸 무시 경향", "expertise": "사업기획, PM" },
+    { "id": 21, "name": "이강훈", "age": 42, "title": "수석컨설턴트", "division": "과제수행부문", "personality": "침착하고 위기에 강함", "strength": "이해관계자 조율", "weakness": "위임을 잘 못함", "expertise": "공공사업 관리" },
+    { "id": 22, "name": "정유나", "age": 38, "title": "책임컨설턴트", "division": "과제수행부문", "personality": "꼼꼼하고 책임감 강함", "strength": "문서·산출물 품질관리", "weakness": "변수 대응 경직", "expertise": "제안서 작성" },
+    { "id": 23, "name": "김태현", "age": 36, "title": "책임컨설턴트", "division": "과제수행부문", "personality": "외향적이고 설득력 있음", "strength": "발주처 커뮤니케이션", "weakness": "내부 보고 소홀", "expertise": "고객 관계 관리" },
+    { "id": 24, "name": "박서윤", "age": 33, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "차분하고 분석적", "strength": "데이터 기반 의사결정", "weakness": "속도가 느림", "expertise": "성과지표(KPI) 설계" },
+    { "id": 25, "name": "최동민", "age": 35, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "에너지 넘치고 도전적", "strength": "신규 사업 발굴", "weakness": "리스크 과소평가", "expertise": "신사업 기획" },
+    { "id": 26, "name": "한예슬", "age": 31, "title": "컨설턴트", "division": "과제수행부문", "personality": "성실하고 협조적", "strength": "일정·자원 관리", "weakness": "거절을 못함", "expertise": "프로젝트 운영" },
+    { "id": 27, "name": "오승준", "age": 34, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "논리적이고 체계적", "strength": "프로세스 표준화", "weakness": "융통성 부족", "expertise": "PMO, 품질관리" },
+    { "id": 28, "name": "신지아", "age": 29, "title": "컨설턴트", "division": "과제수행부문", "personality": "밝고 적극적", "strength": "워크숍 진행·퍼실리테이션", "weakness": "세부 디테일 누락", "expertise": "이해관계자 워크숍" },
+    { "id": 29, "name": "장민재", "age": 37, "title": "책임컨설턴트", "division": "과제수행부문", "personality": "냉철하고 결과지향적", "strength": "예산·원가 관리", "weakness": "팀원 배려 부족", "expertise": "용역 원가관리" },
+    { "id": 30, "name": "윤도경", "age": 32, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "유연하고 친화적", "strength": "부서 간 협업 조율", "weakness": "주관이 약함", "expertise": "협업·조정" },
+    { "id": 31, "name": "임수빈", "age": 28, "title": "컨설턴트", "division": "과제수행부문", "personality": "꼼꼼하고 차분함", "strength": "회의록·산출물 정리", "weakness": "발표에 긴장", "expertise": "문서관리" },
+    { "id": 32, "name": "권상우", "age": 40, "title": "수석컨설턴트", "division": "과제수행부문", "personality": "노련하고 균형감 있음", "strength": "복합 프로젝트 총괄", "weakness": "신기술 학습 더딤", "expertise": "대형 용역 총괄" },
+    { "id": 33, "name": "송재희", "age": 30, "title": "컨설턴트", "division": "과제수행부문", "personality": "창의적이고 능동적", "strength": "솔루션 아이디어 제안", "weakness": "실행 지속성 약함", "expertise": "서비스 기획" },
+    { "id": 34, "name": "조은별", "age": 27, "title": "컨설턴트", "division": "과제수행부문", "personality": "성실하고 겸손함", "strength": "데이터 정리·리서치", "weakness": "경험 부족", "expertise": "리서치 지원" },
+    { "id": 35, "name": "문태웅", "age": 39, "title": "책임컨설턴트", "division": "과제수행부문", "personality": "현실적이고 추진력 강함", "strength": "납기 준수와 협상", "weakness": "고압적 태도", "expertise": "공공조달·계약" },
+    { "id": 36, "name": "황민서", "age": 33, "title": "선임컨설턴트", "division": "과제수행부문", "personality": "분석적이고 신중함", "strength": "리스크 관리 계획", "weakness": "지나친 신중함", "expertise": "리스크 관리" },
+
+    { "id": 37, "name": "한지욱", "age": 46, "title": "정치컨설팅부문장(상무)", "division": "정치컨설팅부문", "personality": "전략적이고 직관이 날카로움", "strength": "선거 판세 읽기", "weakness": "감정 기복", "expertise": "선거전략, 캠페인 총괄" },
+    { "id": 38, "name": "이재원", "age": 43, "title": "수석컨설턴트", "division": "정치컨설팅부문", "personality": "달변이고 설득력 있음", "strength": "메시지·프레이밍", "weakness": "원칙보다 효과 우선", "expertise": "정치 메시지 전략" },
+    { "id": 39, "name": "정하린", "age": 36, "title": "책임컨설턴트", "division": "정치컨설팅부문", "personality": "예리하고 빠른 판단", "strength": "이슈 대응·순발력", "weakness": "장기계획 소홀", "expertise": "위기관리·대응" },
+    { "id": 40, "name": "김선우", "age": 38, "title": "책임컨설턴트", "division": "정치컨설팅부문", "personality": "차분하고 데이터지향적", "strength": "유권자 분석", "weakness": "현장 감각 부족", "expertise": "선거 데이터 분석" },
+    { "id": 41, "name": "박지민", "age": 32, "title": "선임컨설턴트", "division": "정치컨설팅부문", "personality": "감각적이고 트렌디함", "strength": "SNS·디지털 캠페인", "weakness": "지구력 부족", "expertise": "디지털 선거운동" },
+    { "id": 42, "name": "최서아", "age": 34, "title": "선임컨설턴트", "division": "정치컨설팅부문", "personality": "섬세하고 공감력 높음", "strength": "스피치·연설문 작성", "weakness": "거절·비판에 약함", "expertise": "연설문·스피치라이팅" },
+    { "id": 43, "name": "한도훈", "age": 30, "title": "컨설턴트", "division": "정치컨설팅부문", "personality": "열정적이고 헌신적", "strength": "현장 캠페인 운영", "weakness": "감정 과몰입", "expertise": "현장 조직·동원" },
+    { "id": 44, "name": "오나경", "age": 35, "title": "책임컨설턴트", "division": "정치컨설팅부문", "personality": "냉철하고 전략적", "strength": "경쟁후보 분석", "weakness": "융통성 부족", "expertise": "상대 진영 분석" },
+    { "id": 45, "name": "신우성", "age": 41, "title": "수석컨설턴트", "division": "정치컨설팅부문", "personality": "노련하고 인맥이 넓음", "strength": "정·관계 네트워킹", "weakness": "디지털 둔감", "expertise": "정무 자문" },
+    { "id": 46, "name": "장유빈", "age": 29, "title": "컨설턴트", "division": "정치컨설팅부문", "personality": "민첩하고 호기심 많음", "strength": "여론 모니터링", "weakness": "성급한 결론", "expertise": "미디어 모니터링" },
+    { "id": 47, "name": "윤소율", "age": 31, "title": "선임컨설턴트", "division": "정치컨설팅부문", "personality": "창의적이고 표현력 좋음", "strength": "브랜딩·이미지 컨설팅", "weakness": "데이터 경시", "expertise": "후보 이미지 메이킹" },
+    { "id": 48, "name": "임건우", "age": 37, "title": "책임컨설턴트", "division": "정치컨설팅부문", "personality": "단호하고 추진력 강함", "strength": "캠페인 실행 총괄", "weakness": "독선적", "expertise": "캠페인 운영 관리" },
+    { "id": 49, "name": "권나윤", "age": 28, "title": "컨설턴트", "division": "정치컨설팅부문", "personality": "성실하고 밝음", "strength": "홍보물·콘텐츠 제작", "weakness": "경험 부족", "expertise": "정치 홍보 콘텐츠" },
+    { "id": 50, "name": "조민혁", "age": 33, "title": "선임컨설턴트", "division": "정치컨설팅부문", "personality": "분석적이고 신중함", "strength": "정책공약 설계", "weakness": "결정 지연", "expertise": "공약·정책 개발" }
+      ]
+    };
+
+    employees = EMBEDDED.employees || EMBEDDED;
+    // normalize each person's fields for compatibility and include extra fields
+    employees = employees.map(e=>({
+      id: e.id,
+      name: e.name,
+      age: e.age,
+      title: e.title || e.role || '',
+      division: e.division || e.div || e['division'] || '',
+      personality: Array.isArray(e.personality) ? e.personality : (e.traits || e['traits'] ? (Array.isArray(e.traits) ? e.traits : [e.traits]) : (e.personality && typeof e.personality === 'string' ? [e.personality] : [])),
+      strength: e.strength || e.strengths || '',
+      weakness: e.weakness || e.weaknesses || '',
+      expertise: e.expertise || ''
+    }));
+
+    // --- UI helpers: profile modal, edit form, org view ---
+    function showProfile(emp){
+      const wrap = document.createElement('div');
+      const closeBtn = document.createElement('button'); closeBtn.textContent='닫기'; closeBtn.style.float='right'; closeBtn.style.background='#17475e'; closeBtn.style.color='#fff'; closeBtn.style.border='none'; closeBtn.style.padding='6px 8px'; closeBtn.style.borderRadius='6px'; closeBtn.style.cursor='pointer';
+      closeBtn.addEventListener('click',closeModal);
+      const h = document.createElement('h2'); h.textContent = emp.name; h.style.margin='6px 0 4px 0';
+      const meta = document.createElement('div'); meta.style.color='#9fb3d6'; meta.style.fontSize='13px'; meta.textContent = (emp.age? emp.age+'세 • ' : '') + (emp.title || '');
+      const divline = document.createElement('div'); divline.style.marginTop='8px'; divline.textContent = '부문: ' + (emp.division || '');
+      const pers = document.createElement('div'); pers.style.marginTop='10px'; pers.innerHTML = '<strong>성격/특성:</strong> ' + (Array.isArray(emp.personality)? emp.personality.join(', '): emp.personality || '');
+      const s = document.createElement('div'); s.style.marginTop='8px'; s.innerHTML = '<strong>강점:</strong> ' + (emp.strength || '');
+      const w = document.createElement('div'); w.style.marginTop='6px'; w.innerHTML = '<strong>약점:</strong> ' + (emp.weakness || '');
+      const ex = document.createElement('div'); ex.style.marginTop='6px'; ex.innerHTML = '<strong>전문분야:</strong> ' + (emp.expertise || '');
+      wrap.appendChild(closeBtn); wrap.appendChild(h); wrap.appendChild(meta); wrap.appendChild(divline); wrap.appendChild(pers); wrap.appendChild(s); wrap.appendChild(w); wrap.appendChild(ex);
+      openModal(wrap);
+    }
+
+    function showEditForm(emp){
+      const isNew = !emp;
+      const data = emp ? Object.assign({}, emp) : { id: (Math.max(0,...employees.map(x=>x.id))+1), name:'', age:'', title:'', division:'', personality:[], strength:'', weakness:'', expertise:'' };
+      editSession.mode = isNew? 'add':'edit'; editSession.id = data.id;
+      const form = document.createElement('div');
+      const title = document.createElement('h2'); title.textContent = isNew? '직원 추가':'직원 편집';
+      form.appendChild(title);
+      function addField(labelText, val){ const lbl=document.createElement('div'); lbl.style.marginTop='8px'; const lab=document.createElement('div'); lab.style.fontSize='13px'; lab.style.color='#9fb3d6'; lab.textContent=labelText; const inp=document.createElement('input'); inp.value=val||''; inp.style.width='100%'; inp.style.padding='8px'; inp.style.marginTop='6px'; inp.style.borderRadius='6px'; inp.style.background='#061226'; inp.style.border='1px solid #123245'; inp.style.color='#e6eef8'; lbl.appendChild(lab); lbl.appendChild(inp); form.appendChild(lbl); return inp; }
+      const inName = addField('이름', data.name);
+      const inAge = addField('나이', data.age);
+      const inTitle = addField('직책/역할', data.title);
+      const inDivision = addField('부문', data.division);
+      const inPerson = addField('성격(쉼표로 구분)', Array.isArray(data.personality)? data.personality.join(', '): data.personality);
+      const inStrength = addField('강점', data.strength);
+      const inWeak = addField('약점', data.weakness);
+      const inExp = addField('전문분야', data.expertise);
+      const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginTop='12px';
+      const saveBtn = document.createElement('button'); saveBtn.textContent='저장'; saveBtn.style.background='#1b6f3a'; saveBtn.style.color='#fff'; saveBtn.style.border='none'; saveBtn.style.padding='8px 12px'; saveBtn.style.borderRadius='6px'; saveBtn.style.cursor='pointer';
+      const cancelBtn = document.createElement('button'); cancelBtn.textContent='취소'; cancelBtn.style.background='#123245'; cancelBtn.style.color='#cfe6ff'; cancelBtn.style.border='none'; cancelBtn.style.padding='8px 12px'; cancelBtn.style.borderRadius='6px'; cancelBtn.style.cursor='pointer';
+      row.appendChild(saveBtn); row.appendChild(cancelBtn); form.appendChild(row);
+      cancelBtn.addEventListener('click', closeModal);
+      saveBtn.addEventListener('click', ()=>{
+        const updated = {
+          id: data.id,
+          name: inName.value.trim(),
+          age: Number(inAge.value) || inAge.value || '',
+          title: inTitle.value.trim(),
+          division: inDivision.value.trim(),
+          personality: inPerson.value.split(',').map(s=>s.trim()).filter(Boolean),
+          strength: inStrength.value.trim(),
+          weakness: inWeak.value.trim(),
+          expertise: inExp.value.trim()
+        };
+        if(isNew){ employees.push(updated); }
+        else { const idx = employees.findIndex(x=>x.id===data.id); if(idx!==-1) employees[idx]=Object.assign(employees[idx], updated); }
+        closeModal(); render(); if(viewMode==='org') renderOrg();
+      });
+      openModal(form);
+    }
+
+    function showProfileOrEdit(emp){ showProfile(emp); }
+
+    function render(){
+      const filtered = employees.filter(emp => {
+        const div = normalizeDivision(emp.division || emp.div || emp['division']);
+        const divisionMatch = activeDivision === '전체' || div === activeDivision;
+        return divisionMatch && matchName(emp, q);
+      });
+
+      cardsEl.innerHTML = '';
+      countEl.textContent = filtered.length + '/' + employees.length;
+      if(filtered.length === 0){ noResultsEl.style.display = 'block'; } else { noResultsEl.style.display = 'none'; }
+
+      filtered.forEach(emp => {
+        const card = document.createElement('div');
+        card.style.background = '#071428';
+        card.style.padding = '12px';
+        card.style.borderRadius = '8px';
+        card.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.02)';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.cursor = 'pointer';
+
+        const nameRow = document.createElement('div'); nameRow.style.display='flex'; nameRow.style.justifyContent='space-between'; nameRow.style.alignItems='center';
+        const name = document.createElement('div'); name.textContent = emp.name || 'Unknown'; name.style.fontWeight='700'; name.style.fontSize='16px';
+        const age = document.createElement('div'); age.textContent = (emp.age? emp.age + '세' : ''); age.style.fontSize='13px'; age.style.opacity='0.9';
+        nameRow.appendChild(name); nameRow.appendChild(age);
+
+        const role = document.createElement('div'); role.textContent = emp.title || ''; role.style.color='#cfe6ff'; role.style.marginTop='8px'; role.style.fontSize='13px';
+        const division = document.createElement('div'); division.textContent = normalizeDivision(emp.division || emp.div || emp['division'] || ''); division.style.fontSize='12px'; division.style.color='#9fb3d6'; division.style.marginTop='6px';
+
+        const traits = document.createElement('div'); traits.style.display='flex'; traits.style.flexWrap='wrap'; traits.style.gap='6px'; traits.style.marginTop='10px';
+        (Array.isArray(emp.personality) ? emp.personality : []).forEach(t=>{ const chip=document.createElement('div'); chip.textContent=t; chip.style.padding='6px 8px'; chip.style.fontSize='12px'; chip.style.background='#061526'; chip.style.borderRadius='6px'; chip.style.color='#bfe9ff'; traits.appendChild(chip)});
+
+        const footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='flex-end'; footer.style.gap='8px'; footer.style.marginTop='12px';
+        const viewBtn = document.createElement('button'); viewBtn.textContent='보기'; viewBtn.style.padding='6px 10px'; viewBtn.style.borderRadius='6px'; viewBtn.style.border='none'; viewBtn.style.background='#15405a'; viewBtn.style.color='#fff'; viewBtn.style.cursor='pointer';
+        const editBtn = document.createElement('button'); editBtn.textContent='편집'; editBtn.style.padding='6px 10px'; editBtn.style.borderRadius='6px'; editBtn.style.border='none'; editBtn.style.background='#5a3f1b'; editBtn.style.color='#fff'; editBtn.style.cursor='pointer';
+        footer.appendChild(viewBtn); footer.appendChild(editBtn);
+
+        viewBtn.addEventListener('click', (e)=>{ e.stopPropagation(); showProfile(emp); });
+        editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); showEditForm(emp); });
+        card.addEventListener('click', ()=>{ showProfile(emp); });
+
+        card.appendChild(nameRow); card.appendChild(role); card.appendChild(division); card.appendChild(traits); card.appendChild(footer);
+        cardsEl.appendChild(card);
+      });
+    }
+
+    // ORGANIZATIONAL VIEW
+    function renderOrg(){
+      orgEl.innerHTML='';
+      // find CEO
+      const ceo = employees.find(e=> (e.title && e.title.indexOf('대표')!==-1) || (e.division && e.division.indexOf('경영')!==-1)) || employees[0];
+      const divisions = ['연구부문','과제수행','정치컨설팅'];
+      const container = document.createElement('div'); container.style.display='flex'; container.style.flexDirection='column'; container.style.gap='12px';
+      // CEO
+      const ceoBox = document.createElement('div'); ceoBox.style.padding='12px'; ceoBox.style.borderRadius='8px'; ceoBox.style.background='#061526'; ceoBox.style.textAlign='center'; ceoBox.innerHTML = '<div style="font-weight:700">'+(ceo.name||'')+'</div><div style="font-size:12px;color:#9fb3d6">'+(ceo.title||'')+'</div>';
+      container.appendChild(ceoBox);
+      const row = document.createElement('div'); row.style.display='flex'; row.style.gap='12px'; row.style.marginTop='6px';
+      divisions.forEach(div => {
+        const col = document.createElement('div'); col.style.flex='1'; col.style.background='#071428'; col.style.padding='10px'; col.style.borderRadius='8px';
+        const head = employees.find(e=> normalizeDivision(e.division)===div && /부문장|상무|부문장|부장|장/.test(e.title)) || employees.find(e=> normalizeDivision(e.division)===div);
+        const headHtml = head? ('<div style="font-weight:700">'+head.name+'</div><div style="font-size:12px;color:#9fb3d6">'+(head.title||'')+'</div>') : '<div style="color:#9fb3d6">(공석)</div>';
+        const members = employees.filter(e=> normalizeDivision(e.division)===div && e!==head);
+        const membersList = document.createElement('div'); membersList.style.marginTop='8px'; members.forEach(m=>{ const mdiv=document.createElement('div'); mdiv.style.padding='6px 0'; mdiv.style.borderBottom='1px solid rgba(255,255,255,0.02)'; mdiv.style.fontSize='13px'; mdiv.style.cursor='pointer'; mdiv.textContent = m.name + ' • ' + (m.title||''); mdiv.addEventListener('click', ()=> showProfile(m)); membersList.appendChild(mdiv)});
+        col.innerHTML = '<div style="font-size:13px;color:#9fb3d6;margin-bottom:6px">'+div+'</div>' + headHtml;
+        col.appendChild(membersList);
+        row.appendChild(col);
+      });
+      container.appendChild(row);
+      orgEl.appendChild(container);
+    }
+
+    // tabs
+    tabCards.addEventListener('click', ()=>{ viewMode='cards'; cardsEl.parentElement.style.display='block'; orgEl.style.display='none'; projectsEl.style.display='none'; tabCards.style.background='#15405a'; tabOrg.style.background='#071428'; tabProjects.style.background='#071428'; render(); });
+    tabOrg.addEventListener('click', ()=>{ viewMode='org'; cardsEl.parentElement.style.display='none'; orgEl.style.display='block'; projectsEl.style.display='none'; tabOrg.style.background='#15405a'; tabCards.style.background='#071428'; tabProjects.style.background='#071428'; renderOrg(); });
+    tabProjects.addEventListener('click', ()=>{ viewMode='projects'; cardsEl.parentElement.style.display='none'; orgEl.style.display='none'; projectsEl.style.display='block'; tabProjects.style.background='#15405a'; tabCards.style.background='#071428'; tabOrg.style.background='#071428'; renderProjects(); });
+
+    // add employee
+    addEmployeeBtn.addEventListener('click', ()=> showEditForm(null));
+
+    render();
+
+    // embedded projects data (inlined)
+    const EMBEDDED_PROJECTS = {
+      projects: [
+        { id:1, name:'스마트도시 여론분석', client:'서울시청', budget_krw:150000000, status:'진행중', assigned_employee_ids:[2,3,9,12], start_date:'2026-01-15', deadline:'2026-07-30', progress:42 },
+        { id:2, name:'지역경제 활성화 전략', client:'강원도청', budget_krw:82000000, status:'입찰중', assigned_employee_ids:[5,6,13], start_date:'2026-03-01', deadline:'2026-12-31', progress:10 },
+        { id:3, name:'디지털 캠페인 성과분석', client:'모바일캠페인사', budget_krw:60000000, status:'진행중', assigned_employee_ids:[41,40,47,23], start_date:'2026-02-10', deadline:'2026-05-20', progress:68 },
+        { id:4, name:'교육정책 연구용역', client:'교육연구원', budget_krw:98000000, status:'완료', assigned_employee_ids:[19,15,11], start_date:'2025-08-01', deadline:'2026-02-28', progress:100 },
+        { id:5, name:'공공사업 PMO 지원', client:'국토사업단', budget_krw:210000000, status:'진행중', assigned_employee_ids:[20,21,32,27], start_date:'2025-11-01', deadline:'2026-11-01', progress:55 },
+        { id:6, name:'선거여론 모니터링 플랫폼', client:'정치연구소', budget_krw:125000000, status:'진행중', assigned_employee_ids:[37,38,41,46], start_date:'2026-03-15', deadline:'2026-09-30', progress:33 },
+        { id:7, name:'사회지표 데이터 정비', client:'통계센터', budget_krw:45000000, status:'입찰중', assigned_employee_ids:[6,7,12,34], start_date:'2026-04-01', deadline:'2026-08-31', progress:5 },
+        { id:8, name:'정책영향 모델링 고도화', client:'정책기획처', budget_krw:175000000, status:'진행중', assigned_employee_ids:[2,14,16,45], start_date:'2026-01-05', deadline:'2026-10-15', progress:47 },
+        { id:9, name:'공공의사소통 전략 수립', client:'시민소통센터', budget_krw:68000000, status:'완료', assigned_employee_ids:[33,49,29], start_date:'2025-06-01', deadline:'2025-12-20', progress:100 },
+        { id:10, name:'신규사업 기획 파일럿', client:'스타트업연합', budget_krw:54000000, status:'진행중', assigned_employee_ids:[25,31,38], start_date:'2026-04-10', deadline:'2026-09-10', progress:21 }
+      ]
+    };
+
+    const projects = EMBEDDED_PROJECTS.projects || [];
+
+    function renderProjects(){
+      projectsEl.innerHTML = '';
+      const header = document.createElement('div'); header.style.display='flex'; header.style.justifyContent='space-between'; header.style.alignItems='center'; header.style.marginBottom='8px';
+      const h = document.createElement('div'); h.textContent='프로젝트 목록'; h.style.fontWeight='700'; h.style.fontSize='16px';
+      header.appendChild(h);
+      projectsEl.appendChild(header);
+
+      projects.forEach(p=>{
+        const box = document.createElement('div'); box.style.background='#061526'; box.style.padding='10px'; box.style.borderRadius='8px'; box.style.marginBottom='8px';
+        const title = document.createElement('div'); title.style.fontWeight='700'; title.textContent = p.name + ' ('+p.status+')';
+        const meta = document.createElement('div'); meta.style.color='#9fb3d6'; meta.style.fontSize='13px'; meta.textContent = p.client + ' • 예산 ' + (p.budget_krw).toLocaleString() + '원';
+        const dates = document.createElement('div'); dates.style.marginTop='6px'; dates.style.fontSize='13px'; dates.style.color='#cfe6ff'; dates.textContent = '기간: ' + p.start_date + ' → ' + p.deadline + ' • 진행 ' + p.progress + '%';
+        const ass = document.createElement('div'); ass.style.marginTop='8px'; ass.style.display='flex'; ass.style.flexWrap='wrap'; ass.style.gap='6px';
+        (p.assigned_employee_ids || []).forEach(id=>{ const emp = employees.find(e=>e.id===id); const chip=document.createElement('div'); chip.style.padding='6px 8px'; chip.style.background='#071428'; chip.style.borderRadius='6px'; chip.style.cursor='pointer'; chip.style.color='#bfe9ff'; chip.textContent = emp? emp.name : ('ID:'+id); chip.addEventListener('click', ()=> emp && showProfile(emp)); ass.appendChild(chip); });
+        box.appendChild(title); box.appendChild(meta); box.appendChild(dates); box.appendChild(ass);
+        projectsEl.appendChild(box);
+      });
+    }
+
+    // initial filter state
+    setActiveFilter('전체');
+  })();
+  </script>
+
+</body>
+</html>

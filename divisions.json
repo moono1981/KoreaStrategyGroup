@@ -1,0 +1,61 @@
+{
+  "divisions": [
+    {
+      "id": "research",
+      "name_ko": "연구부문",
+      "name_en": "Research Division",
+      "head": "강민수",
+      "headcount": 18,
+      "description": "사회·경제·정책 데이터를 분석하여 객관적 연구보고서와 전략 인사이트를 생산하는 핵심 부문",
+      "responsibilities": [
+        "여론조사 설계 및 분석",
+        "정책·경제 동향 연구",
+        "데이터 모델링 및 통계 분석",
+        "연구보고서 발간"
+      ],
+      "teams": [
+        "여론조사팀",
+        "정책연구팀",
+        "데이터분석팀"
+      ]
+    },
+    {
+      "id": "project",
+      "name_ko": "과제수행부문",
+      "name_en": "Project Execution Division",
+      "head": "윤서진",
+      "headcount": 17,
+      "description": "정부·공공기관·기업이 발주한 용역과제를 기획·관리·수행하여 실질적 성과를 도출하는 부문",
+      "responsibilities": [
+        "정부·공공 용역과제 수주 및 수행",
+        "프로젝트 일정 및 품질 관리",
+        "이해관계자 협의 및 보고",
+        "최종 산출물 납품 및 검수 대응"
+      ],
+      "teams": [
+        "공공사업팀",
+        "기업컨설팅팀",
+        "프로젝트관리팀(PMO)"
+      ]
+    },
+    {
+      "id": "political",
+      "name_ko": "정치컨설팅부문",
+      "name_en": "Political Consulting Division",
+      "head": "한지욱",
+      "headcount": 15,
+      "description": "선거 전략, 메시지 개발, 후보·정당 브랜딩 등 정치 영역의 전략 컨설팅을 제공하는 부문",
+      "responsibilities": [
+        "선거 캠페인 전략 수립",
+        "메시지 및 스피치 개발",
+        "후보·정당 이미지 컨설팅",
+        "위기관리 및 미디어 대응"
+      ],
+      "teams": [
+        "선거전략팀",
+        "메시지·홍보팀",
+        "위기관리팀"
+      ]
+    }
+  ]
+}

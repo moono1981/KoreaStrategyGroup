@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>코리아전략그룹 · 직원 대시보드</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Pretendard", "Malgun Gothic", "맑은 고딕", -apple-system, sans-serif;
+    background: #0f172a; color: #e2e8f0; line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 20px 60px; }
+  header h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  header .sub { color: #94a3b8; margin-top: 6px; font-size: 14px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 26px 0 18px; }
+  .search {
+    flex: 1; min-width: 220px; padding: 11px 14px; border-radius: 10px;
+    border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 14px;
+  }
+  .search:focus { outline: none; border-color: #38bdf8; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 9px 16px; border-radius: 999px; border: 1px solid #334155;
+    background: #1e293b; color: #cbd5e1; cursor: pointer; font-size: 13px; font-weight: 600;
+    transition: all .15s;
+  }
+  .chip:hover { border-color: #475569; }
+  .chip.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+  .stats { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px 20px; }
+  .stat .n { font-size: 22px; font-weight: 800; color: #38bdf8; }
+  .stat .l { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+  .card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 18px;
+    transition: transform .12s, border-color .12s;
+  }
+  .card:hover { transform: translateY(-3px); border-color: #38bdf8; }
+  .card .top { display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 17px; color: #0f172a;
+  }
+  .card .name { font-size: 17px; font-weight: 700; }
+  .card .role { font-size: 13px; color: #94a3b8; }
+  .tag {
+    display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 700;
+    padding: 2px 9px; border-radius: 999px;
+  }
+  .field { margin-top: 11px; font-size: 13px; }
+  .field .k { color: #64748b; font-weight: 700; margin-right: 6px; }
+  .field .strength { color: #4ade80; }
+  .field .weakness { color: #f87171; }
+  .empty { text-align: center; padding: 60px 0; color: #64748b; }
+  footer { margin-top: 40px; text-align: center; color: #475569; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const EMPLOYEES = [
+  { id: 1,  name: "정도현", age: 58, title: "대표이사(CEO)", division: "경영진", personality: "결단력 있고 카리스마가 강하지만 때로 독선적", strength: "큰 그림을 읽는 통찰력과 인맥", weakness: "디테일을 잘 챙기지 못함", expertise: "전략기획, 조직경영" },
+  { id: 2,  name: "강민수", age: 49, title: "연구부문장(상무)", division: "연구부문", personality: "꼼꼼하고 논리적이며 신중함", strength: "데이터 해석과 보고서 품질관리", weakness: "변화에 보수적", expertise: "정책연구, 통계분석" },
+  { id: 3,  name: "이서연", age: 41, title: "수석연구위원", division: "연구부문", personality: "차분하고 분석적이며 경청을 잘함", strength: "복잡한 사회현상 구조화", weakness: "결정을 미루는 경향", expertise: "사회조사방법론" },
+  { id: 4,  name: "박준영", age: 38, title: "책임연구원", division: "연구부문", personality: "호기심 많고 적극적", strength: "신속한 자료 수집과 트렌드 포착", weakness: "마무리가 약함", expertise: "여론조사 설계" },
+  { id: 5,  name: "최유진", age: 35, title: "책임연구원", division: "연구부문", personality: "완벽주의적이고 책임감 강함", strength: "정량분석 정확도", weakness: "지나친 자기검열로 속도 저하", expertise: "계량경제 분석" },
+  { id: 6,  name: "김도윤", age: 33, title: "선임연구원", division: "연구부문", personality: "낙천적이고 협업을 즐김", strength: "팀 분위기 메이커", weakness: "비판에 약함", expertise: "정성연구, 인터뷰" },
+  { id: 7,  name: "한소희", age: 31, title: "선임연구원", division: "연구부문", personality: "조용하지만 집요함", strength: "데이터 클리닝과 검증", weakness: "의견 표현이 소극적", expertise: "데이터 전처리" },
+  { id: 8,  name: "오태경", age: 36, title: "선임연구원", division: "연구부문", personality: "직설적이고 추진력 있음", strength: "프로젝트 드라이브", weakness: "표현이 거칠어 마찰", expertise: "정책영향평가" },
+  { id: 9,  name: "신예린", age: 29, title: "연구원", division: "연구부문", personality: "성실하고 배움에 열정적", strength: "통계패키지 활용 능력", weakness: "경험 부족", expertise: "R, Python 데이터분석" },
+  { id: 10, name: "장현우", age: 30, title: "연구원", division: "연구부문", personality: "창의적이고 자유분방", strength: "시각화·인포그래픽", weakness: "규칙적 업무에 약함", expertise: "데이터 시각화" },
+  { id: 11, name: "윤채원", age: 28, title: "연구원", division: "연구부문", personality: "꼼꼼하고 차분함", strength: "설문 문항 설계", weakness: "멀티태스킹 약함", expertise: "설문조사 설계" },
+  { id: 12, name: "배성민", age: 34, title: "선임연구원", division: "연구부문", personality: "분석적이며 토론을 즐김", strength: "거시경제 동향 해석", weakness: "고집이 셈", expertise: "경제정책 분석" },
+  { id: 13, name: "임하늘", age: 27, title: "연구원", division: "연구부문", personality: "밝고 사교적", strength: "현장 조사 친화력", weakness: "꼼꼼함 부족", expertise: "현장 여론조사" },
+  { id: 14, name: "권지호", age: 32, title: "선임연구원", division: "연구부문", personality: "이성적이고 객관적", strength: "통계 모델링", weakness: "감정적 소통에 둔감", expertise: "예측모델링" },
+  { id: 15, name: "송다은", age: 26, title: "연구원", division: "연구부문", personality: "성실하고 겸손함", strength: "문헌조사·정리", weakness: "자신감 부족", expertise: "선행연구 검토" },
+  { id: 16, name: "조현석", age: 44, title: "수석연구위원", division: "연구부문", personality: "온화하지만 원칙적", strength: "연구 윤리·방법론 자문", weakness: "신기술 수용 더딤", expertise: "연구설계, 검증" },
+  { id: 17, name: "문가영", age: 37, title: "책임연구원", division: "연구부문", personality: "활동적이고 추진력 있음", strength: "프로젝트 일정 관리", weakness: "완벽주의로 인한 압박", expertise: "복지정책 연구" },
+  { id: 18, name: "노준혁", age: 39, title: "책임연구원", division: "연구부문", personality: "신중하고 보수적", strength: "리스크 사전 식별", weakness: "변화 거부감", expertise: "재정·예산 분석" },
+  { id: 19, name: "황수아", age: 30, title: "연구원", division: "연구부문", personality: "긍정적이고 적응력 높음", strength: "다양한 주제 학습", weakness: "전문성 깊이 부족", expertise: "교육정책 조사" },
+  { id: 20, name: "윤서진", age: 47, title: "과제수행부문장(상무)", division: "과제수행부문", personality: "추진력 강하고 현실적", strength: "수주 협상과 성과 관리", weakness: "워라밸 무시 경향", expertise: "사업기획, PM" },
+  { id: 21, name: "이강훈", age: 42, title: "수석컨설턴트", division: "과제수행부문", personality: "침착하고 위기에 강함", strength: "이해관계자 조율", weakness: "위임을 잘 못함", expertise: "공공사업 관리" },
+  { id: 22, name: "정유나", age: 38, title: "책임컨설턴트", division: "과제수행부문", personality: "꼼꼼하고 책임감 강함", strength: "문서·산출물 품질관리", weakness: "변수 대응 경직", expertise: "제안서 작성" },
+  { id: 23, name: "김태현", age: 36, title: "책임컨설턴트", division: "과제수행부문", personality: "외향적이고 설득력 있음", strength: "발주처 커뮤니케이션", weakness: "내부 보고 소홀", expertise: "고객 관계 관리" },
+  { id: 24, name: "박서윤", age: 33, title: "선임컨설턴트", division: "과제수행부문", personality: "차분하고 분석적", strength: "데이터 기반 의사결정", weakness: "속도가 느림", expertise: "성과지표(KPI) 설계" },
+  { id: 25, name: "최동민", age: 35, title: "선임컨설턴트", division: "과제수행부문", personality: "에너지 넘치고 도전적", strength: "신규 사업 발굴", weakness: "리스크 과소평가", expertise: "신사업 기획" },
+  { id: 26, name: "한예슬", age: 31, title: "컨설턴트", division: "과제수행부문", personality: "성실하고 협조적", strength: "일정·자원 관리", weakness: "거절을 못함", expertise: "프로젝트 운영" },
+  { id: 27, name: "오승준", age: 34, title: "선임컨설턴트", division: "과제수행부문", personality: "논리적이고 체계적", strength: "프로세스 표준화", weakness: "융통성 부족", expertise: "PMO, 품질관리" },
+  { id: 28, name: "신지아", age: 29, title: "컨설턴트", division: "과제수행부문", personality: "밝고 적극적", strength: "워크숍 진행·퍼실리테이션", weakness: "세부 디테일 누락", expertise: "이해관계자 워크숍" },
+  { id: 29, name: "장민재", age: 37, title: "책임컨설턴트", division: "과제수행부문", personality: "냉철하고 결과지향적", strength: "예산·원가 관리", weakness: "팀원 배려 부족", expertise: "용역 원가관리" },
+  { id: 30, name: "윤도경", age: 32, title: "선임컨설턴트", division: "과제수행부문", personality: "유연하고 친화적", strength: "부서 간 협업 조율", weakness: "주관이 약함", expertise: "협업·조정" },
+  { id: 31, name: "임수빈", age: 28, title: "컨설턴트", division: "과제수행부문", personality: "꼼꼼하고 차분함", strength: "회의록·산출물 정리", weakness: "발표에 긴장", expertise: "문서관리" },
+  { id: 32, name: "권상우", age: 40, title: "수석컨설턴트", division: "과제수행부문", personality: "노련하고 균형감 있음", strength: "복합 프로젝트 총괄", weakness: "신기술 학습 더딤", expertise: "대형 용역 총괄" },
+  { id: 33, name: "송재희", age: 30, title: "컨설턴트", division: "과제수행부문", personality: "창의적이고 능동적", strength: "솔루션 아이디어 제안", weakness: "실행 지속성 약함", expertise: "서비스 기획" },
+  { id: 34, name: "조은별", age: 27, title: "컨설턴트", division: "과제수행부문", personality: "성실하고 겸손함", strength: "데이터 정리·리서치", weakness: "경험 부족", expertise: "리서치 지원" },
+  { id: 35, name: "문태웅", age: 39, title: "책임컨설턴트", division: "과제수행부문", personality: "현실적이고 추진력 강함", strength: "납기 준수와 협상", weakness: "고압적 태도", expertise: "공공조달·계약" },
+  { id: 36, name: "황민서", age: 33, title: "선임컨설턴트", division: "과제수행부문", personality: "분석적이고 신중함", strength: "리스크 관리 계획", weakness: "지나친 신중함", expertise: "리스크 관리" },
+  { id: 37, name: "한지욱", age: 46, title: "정치컨설팅부문장(상무)", division: "정치컨설팅부문", personality: "전략적이고 직관이 날카로움", strength: "선거 판세 읽기", weakness: "감정 기복", expertise: "선거전략, 캠페인 총괄" },
+  { id: 38, name: "이재원", age: 43, title: "수석컨설턴트", division: "정치컨설팅부문", personality: "달변이고 설득력 있음", strength: "메시지·프레이밍", weakness: "원칙보다 효과 우선", expertise: "정치 메시지 전략" },
+  { id: 39, name: "정하린", age: 36, title: "책임컨설턴트", division: "정치컨설팅부문", personality: "예리하고 빠른 판단", strength: "이슈 대응·순발력", weakness: "장기계획 소홀", expertise: "위기관리·대응" },
+  { id: 40, name: "김선우", age: 38, title: "책임컨설턴트", division: "정치컨설팅부문", personality: "차분하고 데이터지향적", strength: "유권자 분석", weakness: "현장 감각 부족", expertise: "선거 데이터 분석" },
+  { id: 41, name: "박지민", age: 32, title: "선임컨설턴트", division: "정치컨설팅부문", personality: "감각적이고 트렌디함", strength: "SNS·디지털 캠페인", weakness: "지구력 부족", expertise: "디지털 선거운동" },
+  { id: 42, name: "최서아", age: 34, title: "선임컨설턴트", division: "정치컨설팅부문", personality: "섬세하고 공감력 높음", strength: "스피치·연설문 작성", weakness: "거절·비판에 약함", expertise: "연설문·스피치라이팅" },
+  { id: 43, name: "한도훈", age: 30, title: "컨설턴트", division: "정치컨설팅부문", personality: "열정적이고 헌신적", strength: "현장 캠페인 운영", weakness: "감정 과몰입", expertise: "현장 조직·동원" },
+  { id: 44, name: "오나경", age: 35, title: "책임컨설턴트", division: "정치컨설팅부문", personality: "냉철하고 전략적", strength: "경쟁후보 분석", weakness: "융통성 부족", expertise: "상대 진영 분석" },
+  { id: 45, name: "신우성", age: 41, title: "수석컨설턴트", division: "정치컨설팅부문", personality: "노련하고 인맥이 넓음", strength: "정·관계 네트워킹", weakness: "디지털 둔감", expertise: "정무 자문" },
+  { id: 46, name: "장유빈", age: 29, title: "컨설턴트", division: "정치컨설팅부문", personality: "민첩하고 호기심 많음", strength: "여론 모니터링", weakness: "성급한 결론", expertise: "미디어 모니터링" },
+  { id: 47, name: "윤소율", age: 31, title: "선임컨설턴트", division: "정치컨설팅부문", personality: "창의적이고 표현력 좋음", strength: "브랜딩·이미지 컨설팅", weakness: "데이터 경시", expertise: "후보 이미지 메이킹" },
+  { id: 48, name: "임건우", age: 37, title: "책임컨설턴트", division: "정치컨설팅부문", personality: "단호하고 추진력 강함", strength: "캠페인 실행 총괄", weakness: "독선적", expertise: "캠페인 운영 관리" },
+  { id: 49, name: "권나윤", age: 28, title: "컨설턴트", division: "정치컨설팅부문", personality: "성실하고 밝음", strength: "홍보물·콘텐츠 제작", weakness: "경험 부족", expertise: "정치 홍보 콘텐츠" },
+  { id: 50, name: "조민혁", age: 33, title: "선임컨설턴트", division: "정치컨설팅부문", personality: "분석적이고 신중함", strength: "정책공약 설계", weakness: "결정 지연", expertise: "공약·정책 개발" }
+];
+
+const DIV_COLORS = {
+  "경영진":        { bg: "#a78bfa", tag: "#a78bfa22", text: "#c4b5fd" },
+  "연구부문":      { bg: "#38bdf8", tag: "#38bdf822", text: "#7dd3fc" },
+  "과제수행부문":  { bg: "#4ade80", tag: "#4ade8022", text: "#86efac" },
+  "정치컨설팅부문": { bg: "#fb923c", tag: "#fb923c22", text: "#fdba74" }
+};
+
+const FILTERS = ["전체", "연구부문", "과제수행부문", "정치컨설팅부문", "경영진"];
+
+function Card({ e }) {
+  const c = DIV_COLORS[e.division] || DIV_COLORS["연구부문"];
+  return (
+    <div className="card">
+      <div className="top">
+        <div className="avatar" style={{ background: c.bg }}>{e.name.charAt(0)}</div>
+        <div>
+          <div className="name">{e.name} <span style={{ color: "#64748b", fontSize: 13, fontWeight: 400 }}>· {e.age}세</span></div>
+          <div className="role">{e.title}</div>
+          <span className="tag" style={{ background: c.tag, color: c.text }}>{e.division}</span>
+        </div>
+      </div>
+      <div className="field"><span className="k">전문</span>{e.expertise}</div>
+      <div className="field"><span className="k">성격</span>{e.personality}</div>
+      <div className="field"><span className="k strength">강점</span>{e.strength}</div>
+      <div className="field"><span className="k weakness">약점</span>{e.weakness}</div>
+    </div>
+  );
+}
+
+function App() {
+  const [filter, setFilter] = React.useState("전체");
+  const [query, setQuery] = React.useState("");
+
+  const filtered = EMPLOYEES.filter(e => {
+    const okDiv = filter === "전체" || e.division === filter;
+    const q = query.trim().toLowerCase();
+    const okQ = !q || [e.name, e.title, e.division, e.personality, e.strength, e.weakness, e.expertise]
+      .join(" ").toLowerCase().includes(q);
+    return okDiv && okQ;
+  });
+
+  const count = d => EMPLOYEES.filter(e => e.division === d).length;
+
+  return (
+    <div className="wrap">
+      <header>
+        <h1>코리아전략그룹 · 직원 대시보드</h1>
+        <div className="sub">Korea Strategy Group — 전체 {EMPLOYEES.length}명 · 부서별 필터 및 검색</div>
+      </header>
+
+      <div className="stats">
+        <div className="stat"><div className="n">{EMPLOYEES.length}</div><div className="l">전체 인원</div></div>
+        <div className="stat"><div className="n">{count("연구부문")}</div><div className="l">연구부문</div></div>
+        <div className="stat"><div className="n">{count("과제수행부문")}</div><div className="l">과제수행부문</div></div>
+        <div className="stat"><div className="n">{count("정치컨설팅부문")}</div><div className="l">정치컨설팅부문</div></div>
+      </div>
+
+      <div className="toolbar">
+        <input
+          className="search"
+          placeholder="이름 · 직책 · 전문분야 · 성격 검색…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+        <div className="filters">
+          {FILTERS.map(f => (
+            <button
+              key={f}
+              className={"chip" + (filter === f ? " active" : "")}
+              onClick={() => setFilter(f)}
+            >{f}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ color: "#64748b", fontSize: 13, marginBottom: 14 }}>
+        {filtered.length}명 표시 중
+      </div>
+
+      {filtered.length === 0
+        ? <div className="empty">검색 결과가 없습니다.</div>
+        : <div className="grid">{filtered.map(e => <Card key={e.id} e={e} />)}</div>}
+
+      <footer>© 2026 코리아전략그룹 (Korea Strategy Group) · 내부용 직원 대시보드</footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

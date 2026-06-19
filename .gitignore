@@ -1,0 +1,31 @@
+.DS_Store
+Thumbs.db
+node_modules/
+__pycache__/
+*.py[cod]
+*.env
+.env.local
+.vscode/
+.DS_Store
+*.log
+*.sqlite3
+*.db
+*.iml
+.idea/
+*.class
+*.jar
+/dist/
+/build/
+*.exe
+*.dll
+*.so
+*.pdb
+*.egg-info/
+.eggs/
+.env
+.env.*
+*.tmp
+# Office files (optional)
+*.docx
+*.doc
+# Keep these if you want to track the generated 정관 docx; remove the above lines if you prefer committing it
