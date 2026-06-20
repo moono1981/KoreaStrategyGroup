@@ -15,9 +15,29 @@ import argparse
 import random
 import os
 
-# Configuration (provided)
-TELEGRAM_TOKEN = "8761693245:AAEXlr4MML2U00gDFGRxOm17vHJ95roP8M4"
-CHAT_ID = "475983619"
+# Load simple .env if present (KEY=VALUE lines)
+def _load_dotenv(path='.env'):
+    try:
+        if os.path.exists(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                for ln in f:
+                    ln = ln.strip()
+                    if not ln or ln.startswith('#'):
+                        continue
+                    if '=' in ln:
+                        k, v = ln.split('=', 1)
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        os.environ.setdefault(k, v)
+    except Exception:
+        pass
+
+
+_load_dotenv()
+
+# Configuration (from env or fallback)
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN', "8761693245:AAEXlr4MML2U00gDFGRxOm17vHJ95roP8M4")
+CHAT_ID = os.environ.get('CHAT_ID', "475983619")
 
 API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 GETUPDATES_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
@@ -30,7 +50,7 @@ except Exception:
     pass
 
 # (Legacy) Anthropic placeholders kept but not used when using local idea pool
-ANTHROPIC_API_KEY = ""
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', "")
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
 
