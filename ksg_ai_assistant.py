@@ -24,7 +24,7 @@ from collections import deque
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN', "8761693245:AAEXlr4MML2U00gDFGRxOm17vHJ95roP8M4")
 CHAT_ID = os.environ.get('CHAT_ID', "475983619")
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent"
 
 SYSTEM_PROMPT = (
     "당신은 코리아전략그룹의 AI 비서입니다. 공공정책, AI, 핀테크, 에너지, 지방행정, 정치컨설팅 분야의 "

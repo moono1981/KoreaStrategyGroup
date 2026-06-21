@@ -12,6 +12,7 @@
 - `talent.html`: 인재개발 역량 테이블
 - `ksg_bot.py`: 텔레그램 봇 (명령어: /morning /afternoon /evening /idea /status /help)
 - `ksg_scheduler.py`: 자동 스케줄러 (09:00/13:00/18:00)
+- `ksg_ai_assistant.py`: 텔레그램/스크립트용 AI 비서 (Gemini API 사용, 모델: gemini-3.5-flash)
 - `정관_코리아전략그룹.docx`: 회사 정관 Word 문서
 - `employees.json`: 직원 50명 데이터
 - `projects.json`: 프로젝트 10개 데이터
@@ -29,7 +30,7 @@
 - 대시보드 열기: `start dashboard.html`
 
 ## 다음 할 일
-1. 텔레그램 AI 비서 기능 (질문하면 Claude가 답변)
+1. 텔레그램 AI 비서 기능 (질문하면 Gemini가 답변; `ksg_ai_assistant.py` — 모델: gemini-3.5-flash)
 2. 웹사이트 프로젝트 현황 실시간 반영
 3. 사업계획서 작성
 4. 수메르 경제사 논문 (별도 채팅)
