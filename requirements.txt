@@ -1,2 +1,4 @@
 requests
 python-docx>=0.8.11
+schedule
+python-dotenv
