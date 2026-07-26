@@ -29,6 +29,12 @@
 - 자동 스케줄러: `python ksg_scheduler.py`
 - 대시보드 열기: `start dashboard.html`
 
+## 2026-07-26 진행 상황
+- `ksg_procurement.py`의 나라장터/심사위원 브리핑 모듈을 활성화하고 `.env`의 `PUBLIC_DATA_API_KEY`를 사용하도록 연결함.
+- Gmail SMTP 테스트는 성공했고 실제 발송도 확인됨.
+- Judges API 재시험 결과: `fetch_judges()`가 HTTP 500 응답을 반환하여 현재는 실데이터 수신이 실패 중임.
+- 내일 재시도 예정: judges API 엔드포인트 상태와 API 키/파라미터 재검증.
+
 ## 다음 할 일
 1. 텔레그램 AI 비서 기능 (질문하면 Gemini가 답변; `ksg_ai_assistant.py` — 모델: gemini-3.5-flash)
 2. 웹사이트 프로젝트 현황 실시간 반영

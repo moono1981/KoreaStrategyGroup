@@ -2,23 +2,28 @@
 # -*- coding: utf-8 -*-
 """ksg_procurement.py
 
-Procurement briefing and Gmail utility for Korea Strategy Group.
+Procurement briefing, task management, and Gmail utility for Korea Strategy Group.
 
 Features:
 - Gmail SMTP test and send
 - 나라장터 bid briefing (requires PUBLIC_DATA_API_KEY)
 - 심사위원 judge announcement briefing
-- Daily scheduler support
+- Telegram task assignment and tracking
+- Telegram email instruction confirmation flow
+- Daily scheduler support (10:00 briefing + 18:00 report)
 
 Usage:
   python ksg_procurement.py --to EMAIL [--subject SUBJECT] [--body BODY] [--send]
-  python ksg_procurement.py --briefings              # Run bid/judge briefings
-  python ksg_procurement.py --scheduler              # Start daily scheduler (10:00 AM)
+  python ksg_procurement.py --briefings
+  python ksg_procurement.py --scheduler
+  python ksg_procurement.py --telegram-listen
 """
 
 import argparse
 import datetime
+import json
 import os
+import re
 import smtplib
 import sys
 import time
@@ -36,11 +41,16 @@ except ImportError:
     schedule = None
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TASKS_FILE = os.path.join(SCRIPT_DIR, "tasks.json")
+PENDING_EMAILS = {}
+
+
 def _load_dotenv(path=None):
     """Load environment variables from .env file, tolerating encoding issues."""
     try:
         if path is None:
-            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+            path = os.path.join(SCRIPT_DIR, ".env")
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8", errors="replace") as handle:
                 for line in handle:
@@ -98,6 +108,119 @@ def send_via_gmail(sender, password, msg, dry_run=True):
         print(f"Failed to send email: {exc}")
         return False
 
+
+# Task management
+
+def load_tasks():
+    if not os.path.exists(TASKS_FILE):
+        save_tasks([])
+        return []
+    try:
+        with open(TASKS_FILE, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+            if isinstance(data, list):
+                return data
+    except Exception:
+        pass
+    return []
+
+
+def save_tasks(tasks):
+    with open(TASKS_FILE, "w", encoding="utf-8") as handle:
+        json.dump(tasks, handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
+
+
+def create_task(assignee, task, deadline=None, status="pending"):
+    tasks = load_tasks()
+    task_id = f"T{datetime.datetime.now().strftime('%y%m%d%H%M%S')}{uuid.uuid4().hex[:4]}"
+    task_record = {
+        "id": task_id,
+        "assignee": assignee,
+        "task": task,
+        "deadline": deadline,
+        "status": status,
+        "created_at": datetime.date.today().isoformat(),
+        "completed_at": None,
+    }
+    tasks.append(task_record)
+    save_tasks(tasks)
+    return task_record
+
+
+def list_pending_tasks():
+    return [task for task in load_tasks() if task.get("status") != "completed"]
+
+
+def mark_task_done(task_id):
+    tasks = load_tasks()
+    for task in tasks:
+        if task.get("id") == task_id:
+            task["status"] = "completed"
+            task["completed_at"] = datetime.date.today().isoformat()
+            save_tasks(tasks)
+            return True
+    return False
+
+
+def get_task_status_summary():
+    tasks = load_tasks()
+    pending = [task for task in tasks if task.get("status") != "completed"]
+    completed_today = [task for task in tasks if task.get("status") == "completed" and task.get("completed_at") == datetime.date.today().isoformat()]
+    overdue = []
+    today = datetime.date.today()
+    for task in pending:
+        deadline = task.get("deadline")
+        if deadline:
+            try:
+                if datetime.date.fromisoformat(deadline) < today:
+                    overdue.append(task)
+            except ValueError:
+                pass
+    return {
+        "total": len(tasks),
+        "pending": len(pending),
+        "completed_today": len(completed_today),
+        "overdue": len(overdue),
+        "overdue_items": overdue,
+        "pending_items": pending,
+    }
+
+
+def compose_task_summary():
+    summary = get_task_status_summary()
+    lines = [
+        f"Task Summary: pending={summary['pending']} completed_today={summary['completed_today']} overdue={summary['overdue']}",
+    ]
+    if summary["pending_items"]:
+        lines.append("Pending tasks:")
+        for task in summary["pending_items"][:5]:
+            deadline = task.get("deadline") or "-"
+            lines.append(f"- {task['id']} | {task['assignee']} | {task['task']} | due:{deadline}")
+    else:
+        lines.append("No pending tasks.")
+    return "\n".join(lines)
+
+
+def compose_daily_report():
+    summary = get_task_status_summary()
+    lines = [
+        f"📊 Daily Report ({datetime.date.today().isoformat()})",
+        f"- Completed today: {summary['completed_today']}",
+        f"- Pending: {summary['pending']}",
+        f"- Overdue: {summary['overdue']}",
+    ]
+    if summary["pending_items"]:
+        lines.append("Pending tasks:")
+        for task in summary["pending_items"][:8]:
+            deadline = task.get("deadline") or "-"
+            lines.append(f"- {task['id']} | {task['assignee']} | {task['task']} | due:{deadline}")
+    else:
+        lines.append("- No pending tasks")
+    return "\n".join(lines)
+
+
+# API integrations
 
 def fetch_bids(keywords, limit=5):
     """Fetch bid announcements from 나라장터 BidPublicInfoService04 API."""
@@ -239,9 +362,123 @@ def send_telegram_message(text):
         return False
 
 
-def run_briefings():
-    """Run bid and judge briefings, send via email or Telegram."""
-    # TEAM A: bid announcements
+def send_telegram_message_to_chat(chat_id, text):
+    if not requests or not TELEGRAM_TOKEN or not chat_id:
+        return False
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    try:
+        r = requests.post(url, json=payload, timeout=10)
+        return r.ok
+    except Exception:
+        return False
+
+
+def handle_telegram_command(text, chat_id):
+    if not text:
+        return None
+
+    if text.startswith("/assign"):
+        tokens = text.split()
+        if len(tokens) < 3:
+            return "사용법: /assign @teamA 작업내용 deadline:2026-07-30"
+        assignee = tokens[1]
+        deadline = None
+        task_tokens = tokens[2:]
+        if task_tokens and task_tokens[-1].startswith("deadline:"):
+            deadline = task_tokens[-1].split(":", 1)[1].strip()
+            task_tokens = task_tokens[:-1]
+        task_text = " ".join(task_tokens).strip()
+        if not task_text:
+            return "작업 내용을 입력해 주세요."
+        task = create_task(assignee, task_text, deadline=deadline)
+        return f"Task assigned: {task['id']} | assignee={assignee} | task={task_text} | deadline={deadline or '-'}"
+
+    if text.startswith("/tasks"):
+        pending = list_pending_tasks()
+        if not pending:
+            return "No pending tasks."
+        lines = ["Pending tasks:"]
+        for task in pending:
+            deadline = task.get("deadline") or "-"
+            lines.append(f"- {task['id']} | {task['assignee']} | {task['task']} | due:{deadline}")
+        return "\n".join(lines)
+
+    if text.startswith("/done"):
+        task_id = text.split(maxsplit=1)[1].strip() if len(text.split()) > 1 else ""
+        if not task_id:
+            return "사용법: /done 태스크ID"
+        ok = mark_task_done(task_id)
+        return f"Task marked complete: {task_id}" if ok else f"Task not found: {task_id}"
+
+    if text.startswith("/status"):
+        return compose_task_summary()
+
+    if text.startswith("/email"):
+        match = re.match(r"/email\s+to:(.+?)\s+subject:(.+?)\s+body:(.+)$", text, re.I)
+        if not match:
+            return "사용법: /email to:받는사람 subject:제목 body:내용"
+        recipient, subject, body = match.groups()
+        PENDING_EMAILS[chat_id] = {"to": recipient.strip(), "subject": subject.strip(), "body": body.strip()}
+        return ("Email preview:\n" f"To: {recipient.strip()}\n" f"Subject: {subject.strip()}\n" f"Body: {body.strip()}\n\n" "Confirm with /confirm or cancel with /cancel")
+
+    if text == "/confirm":
+        pending = PENDING_EMAILS.pop(chat_id, None)
+        if not pending:
+            return "No pending email to confirm."
+        sender = GMAIL_USER
+        password = GMAIL_APP_PASSWORD
+        if not sender:
+            return "GMAIL_USER is not configured."
+        if not password:
+            return "GMAIL_APP_PASSWORD is not configured."
+        msg = build_message(sender, pending["to"], pending["subject"], pending["body"])
+        success = send_via_gmail(sender, password, msg, dry_run=False)
+        return "Email sent successfully" if success else "Email sending failed."
+
+    if text == "/cancel":
+        if chat_id in PENDING_EMAILS:
+            del PENDING_EMAILS[chat_id]
+        return "Email cancelled."
+
+    return None
+
+
+def poll_telegram_commands(interval=5):
+    if not requests or not TELEGRAM_TOKEN:
+        print("Telegram token not configured; skipping Telegram polling")
+        return
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
+    offset = None
+    while True:
+        params = {"limit": 20}
+        if offset is not None:
+            params["offset"] = offset
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            data = response.json()
+            for update in data.get("result", []):
+                update_id = update.get("update_id")
+                if update_id is not None:
+                    offset = update_id + 1
+                message = update.get("message") or update.get("edited_message")
+                if not message:
+                    continue
+                text = (message.get("text") or "").strip()
+                chat_id = message.get("chat", {}).get("id")
+                if not text or not chat_id:
+                    continue
+                response_text = handle_telegram_command(text, chat_id)
+                if response_text:
+                    send_telegram_message_to_chat(chat_id, response_text)
+        except Exception as exc:
+            print(f"Telegram polling error: {exc}")
+        time.sleep(interval)
+
+
+def run_briefings(include_task_summary=True):
+    """Run bid and judge briefings and optionally include task summary."""
     keywords = ["에너지", "금융", "산업", "재생에너지", "핀테크", "ESG"]
     bids = fetch_bids(keywords, limit=5)
     bid_msg = compose_bids_message(bids)
@@ -250,22 +487,33 @@ def run_briefings():
 
     print()
 
-    # TEAM B: judge announcements (수도권)
     judges = fetch_judges(regions=("서울", "경기", "인천"), limit=5)
     judge_msg = compose_judges_message(judges)
     print(judge_msg)
     send_telegram_message(judge_msg)
 
+    if include_task_summary:
+        task_summary = compose_task_summary()
+        print("\n" + task_summary)
+        send_telegram_message(task_summary)
+
+
+def send_daily_report():
+    report = compose_daily_report()
+    print(report)
+    send_telegram_message(report)
+
 
 def start_scheduler():
-    """Start daily scheduler to run briefings at 10:00 AM."""
+    """Start daily scheduler (10:00 briefing + 18:00 report)."""
     if not schedule:
         print("schedule library not installed; cannot start scheduler")
         return
 
     schedule.clear()
     schedule.every().day.at("10:00").do(run_briefings)
-    print("ksg_procurement scheduler started; running briefings at 10:00 daily")
+    schedule.every().day.at("18:00").do(send_daily_report)
+    print("ksg_procurement scheduler started; 10:00 briefing + 18:00 report")
     try:
         while True:
             schedule.run_pending()
@@ -275,21 +523,19 @@ def start_scheduler():
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="KSG Procurement: Gmail + Briefings")
-    
-    # Email mode
+    parser = argparse.ArgumentParser(description="KSG Procurement: Gmail + Briefings + Tasks")
+
     parser.add_argument("--to", help="Send email to recipient")
     parser.add_argument("--subject", default="KSG Procurement Test", help="Email subject")
     parser.add_argument("--body", default="This is a test message from ksg_procurement.", help="Email body")
     parser.add_argument("--send", action="store_true", help="Actually send email (not dry-run)")
-    
-    # Briefing modes
+
     parser.add_argument("--briefings", action="store_true", help="Run bid/judge briefings")
-    parser.add_argument("--scheduler", action="store_true", help="Start daily scheduler (10:00 AM)")
-    
+    parser.add_argument("--scheduler", action="store_true", help="Start daily scheduler")
+    parser.add_argument("--telegram-listen", action="store_true", help="Start Telegram command listener")
+
     args = parser.parse_args(argv)
 
-    # Email mode
     if args.to:
         sender = GMAIL_USER
         password = GMAIL_APP_PASSWORD
@@ -306,21 +552,23 @@ def main(argv=None):
         success = send_via_gmail(sender, password, msg, dry_run=not args.send)
         return 0 if success else 1
 
-    # Briefing mode
     if args.briefings:
         run_briefings()
         return 0
 
-    # Scheduler mode
     if args.scheduler:
         start_scheduler()
         return 0
 
-    # No mode specified
+    if args.telegram_listen:
+        poll_telegram_commands()
+        return 0
+
     print("Usage:")
     print("  Email:     python ksg_procurement.py --to EMAIL [--subject ...] [--body ...] [--send]")
     print("  Briefings: python ksg_procurement.py --briefings")
     print("  Scheduler: python ksg_procurement.py --scheduler")
+    print("  Telegram:  python ksg_procurement.py --telegram-listen")
     return 1
 
 
